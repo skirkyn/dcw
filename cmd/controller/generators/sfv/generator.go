@@ -201,6 +201,12 @@ func (g *StringFromVocabularyGenerator) recalculatePositions(batchSize int) ([]i
 	for i := g.state.Config.ResultLength - 1; i >= 0; i++ {
 		current := int(math.Pow(float64(vocabularyLength), float64(g.state.Config.ResultLength-i)))
 		newVal := carryover + batchSize%current - previous
+		if newVal >= vocabularyLength {
+			carryover = 1
+			newVal = newVal % vocabularyLength
+		} else {
+			carryover = 0
+		}
 		previous = newVal
 		result[i] = newVal
 	}
