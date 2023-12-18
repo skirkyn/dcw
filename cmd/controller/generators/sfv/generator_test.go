@@ -125,15 +125,42 @@ func TestForStandardError(t *testing.T) {
 func TestRecalculatePositions(t *testing.T) {
 	res, _ := ForStandard(Decimals, 8, Simple)
 	p, err := res.recalculatePositions(5)
-	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 5})
+	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 5})
+	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0})
+	if res.state.Done {
+		t.Error("shouldn't be done")
+	}
 
 	res, _ = ForStandard(Decimals, 8, Simple)
 	p, err = res.recalculatePositions(16)
-	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 1, 6})
+	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 1, 6})
+	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0})
+	if res.state.Done {
+		t.Error("shouldn't be done")
+	}
 
-	res, _ = ForStandard(Decimals, 8, Simple)
-	p, err = res.recalculatePositions(16)
-	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 5})
+	res, _ = ForStandard(Hex, 8, Simple)
+	p, err = res.recalculatePositions(5000)
+	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 1, 3, 8, 8})
+	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0})
+	if res.state.Done {
+		t.Error("shouldn't be done")
+	}
+
+	res, _ = ForStandard(Hex, 10, Simple)
+	p, err = res.recalculatePositions(100)
+	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 0, 6, 4})
+	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	if res.state.Done {
+		t.Error("shouldn't be done")
+	}
+	res, _ = ForStandard(Base36, 4, Simple)
+	p, err = res.recalculatePositions(1679617)
+	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 1})
+	validatePositions(t, err, p, []int{0, 0, 0, 0})
+	if !res.state.Done {
+		t.Error("should be done")
+	}
 }
 
 func validatePositions(t *testing.T, err error, actual []int, expected []int) {
@@ -145,6 +172,7 @@ func validatePositions(t *testing.T, err error, actual []int, expected []int) {
 			fmt.Println(expected)
 			fmt.Println(actual)
 			t.Errorf("different positions at %d, actual %d, expected: %d", i, actual[i], expected[i])
+			return
 		}
 	}
 }

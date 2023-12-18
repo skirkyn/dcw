@@ -184,45 +184,57 @@ func (g *StringFromVocabularyGenerator) generateBatch(res *[]string, current []r
 	return nil
 }
 
-func (g *StringFromVocabularyGenerator) recalculatePositions(batchSize int) ([]int, error) {
+func (g *StringFromVocabularyGenerator) updatePositions(positions *[]int, log int, sum int, index int) int {
+	positionsDeref := *positions
+	vocabLength := len(g.state.Config.Vocabulary)
 
-	vocabularyLength := len(g.state.Config.Vocabulary)
+	if index == len(positionsDeref) {
+		return 0
+	}
+
+	newLog := log
+	adjustIndex := len(positionsDeref)-index == log
+	newSum := sum
+	newCarryover := 0
+	if adjustIndex {
+		iteration := int(math.Pow(float64(vocabLength), float64(log)))
+		newSum = sum % iteration
+		newCarryover = sum / iteration
+		newLog = newLog - 1
+	}
+
+	carryover := g.updatePositions(positions, newLog, newSum, index+1)
+	newValue := positionsDeref[index] + carryover
+	if index == len(positionsDeref)-1 {
+		newValue += newSum
+	}
+	positionsDeref[index] = int(math.Min(float64(newValue), float64(vocabLength)))
+
+	return newCarryover
+}
+
+func (g *StringFromVocabularyGenerator) recalculatePositions(batchSize int) ([]int, error) {
 
 	g.stateLock.Lock()
 
-	result := append(make([]int, g.state.Config.ResultLength), g.state.CurrentPositions...)
-
+	if g.state.Done {
+		return nil, gerrorrs.NewPotentialResultsExhausted()
+	}
+	vocabularyLength := len(g.state.Config.Vocabulary)
 	log := int(math.Log10(float64(batchSize)) / math.Log10(float64(vocabularyLength)))
 
-	rest := batchSize / int(math.Pow(float64(log), float64(vocabularyLength)))
+	oldPositions := append(make([]int, g.state.Config.ResultLength), g.state.CurrentPositions...)
+	newPositions := append(make([]int, g.state.Config.ResultLength), g.state.CurrentPositions...)
 
-	carryover := 0
-	previous := 0
-	for i := g.state.Config.ResultLength - 1; i >= 0; i++ {
-		current := int(math.Pow(float64(vocabularyLength), float64(g.state.Config.ResultLength-i)))
-		newVal := carryover + batchSize%current - previous
-		if newVal >= vocabularyLength {
-			carryover = 1
-			newVal = newVal % vocabularyLength
-		} else {
-			carryover = 0
-		}
-		previous = newVal
-		result[i] = newVal
+	carryover := g.updatePositions(&newPositions, int(math.Min(float64(log), float64(g.state.Config.ResultLength))), batchSize, 0)
+
+	if carryover > 0 {
+		g.state.Done = true
 	}
 
-	if g.state.Config.ResultLength-log >= 0 {
-		result[g.state.Config.ResultLength-log] = (result[g.state.Config.ResultLength-log] + 1) % vocabularyLength
-		if g.state.Config.ResultLength-log-1 >= 0 {
-			result[g.state.Config.ResultLength-log-1] = (result[g.state.Config.ResultLength-log-1] + rest) % vocabularyLength
-			if g.state.Config.ResultLength-log-1 == 0 && result[g.state.Config.ResultLength-log-1] == 0 {
-				g.state.Done = true
-			}
-		}
-	}
-	g.state.CurrentPositions = append(make([]int, g.state.Config.ResultLength), result...)
+	g.state.CurrentPositions = newPositions
 
 	g.stateLock.Unlock()
 
-	return result, nil
+	return oldPositions, nil
 }
