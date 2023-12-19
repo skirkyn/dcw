@@ -8,6 +8,6 @@ func (e CustomNotSupported) Error() string {
 	return e.s
 }
 
-func NewCustomNotSupported() error {
+func newCustomNotSupported() error {
 	return CustomNotSupported{"custom not supported"}
 }

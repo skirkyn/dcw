@@ -8,6 +8,6 @@ func (e PotentialResultsExhausted) Error() string {
 	return e.s
 }
 
-func NewPotentialResultsExhausted() error {
+func newPotentialResultsExhausted() error {
 	return PotentialResultsExhausted{"potential results exhausted"}
 }

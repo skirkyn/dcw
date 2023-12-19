@@ -8,6 +8,6 @@ func (e IncorrectFormatter) Error() string {
 	return e.s
 }
 
-func NewIncorrectFormatter() error {
+func newIncorrectFormatter() error {
 	return IncorrectFormatter{"incorrect formatter"}
 }

@@ -8,6 +8,6 @@ func (e InvalidStateFile) Error() string {
 	return e.s
 }
 
-func NewInvalidStateFile() error {
+func newInvalidStateFile() error {
 	return CustomNotSupported{"state file doesn't exist or invalid"}
 }

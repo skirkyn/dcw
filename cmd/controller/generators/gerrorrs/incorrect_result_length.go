@@ -8,6 +8,6 @@ func (e IncorrectResultLength) Error() string {
 	return e.s
 }
 
-func NewIncorrectResultLength() error {
+func newIncorrectResultLength() error {
 	return IncorrectResultLength{"incorrect result length"}
 }

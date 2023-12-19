@@ -8,6 +8,6 @@ func (e IncorrectVocabularyLength) Error() string {
 	return e.s
 }
 
-func NewIncorrectVocabularyLength() error {
+func newIncorrectVocabularyLength() error {
 	return IncorrectVocabularyLength{"incorrect result length"}
 }

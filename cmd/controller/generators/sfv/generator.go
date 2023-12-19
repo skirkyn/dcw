@@ -67,13 +67,13 @@ const StringFromVocabularyStateFileDefaultLocation = "/home/sfa_gen.json"
 func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (*StringFromVocabularyGenerator, error) {
 
 	if resultLength <= 0 {
-		return nil, gerrorrs.NewIncorrectResultLength()
+		return nil, gerrorrs.IncorrectResultLengthError
 	}
 	if vocabulary == nil || len(vocabulary) == 0 {
-		return nil, gerrorrs.NewIncorrectVocabularyLength()
+		return nil, gerrorrs.IncorrectVocabularyLengthError
 	}
 	if int(formatter) >= len(formattersFunctions) {
-		return nil, gerrorrs.NewIncorrectFormatter()
+		return nil, gerrorrs.IncorrectFormatterError
 	}
 	stateVocabulary := append([]rune(nil), vocabulary...)
 	sort.Slice(stateVocabulary, func(i, j int) bool {
@@ -87,7 +87,7 @@ func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (*Strin
 func ForStandard(vocabulary Vocabulary, resultLength int, formatter Formatter) (*StringFromVocabularyGenerator, error) {
 
 	if vocabulary == Custom {
-		return nil, gerrorrs.NewCustomNotSupported()
+		return nil, gerrorrs.CustomNotSupportedError
 	}
 	return ForCustom(resultLength, vocabularyCharacters[vocabulary], formatter)
 }
@@ -117,37 +117,19 @@ func StringFromVocabularyGeneratorFromState(state State) (*StringFromVocabularyG
 	return &StringFromVocabularyGenerator{&state, &sync.RWMutex{}}, nil
 }
 
-func (g *StringFromVocabularyGenerator) Next(batchSize int, resultChannel *chan []string) error {
+func (g *StringFromVocabularyGenerator) Next(batchSize int) ([]string, error) {
 
 	currentPositions, err := g.recalculatePositions(batchSize)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	template := make([]rune, g.state.Config.ResultLength)
 	chunk := make([]string, batchSize)
 	err = g.generateBatch(&chunk, template, batchSize, 0, currentPositions)
 
-	if err != nil {
-		return err
-	}
-	g.stateLock.Lock()
-
-	for i := 0; i < g.state.Config.ResultLength; i++ {
-		if g.state.CurrentPositions[i] > currentPositions[i] {
-			break
-		}
-		if g.state.CurrentPositions[i] < currentPositions[i] {
-			g.state.CurrentPositions = currentPositions
-			break
-		}
-	}
-
-	g.stateLock.Unlock()
-
-	*resultChannel <- chunk
-	return nil
+	return chunk, err
 }
 
 func (g *StringFromVocabularyGenerator) CurrentState() ([]byte, error) {
@@ -218,7 +200,7 @@ func (g *StringFromVocabularyGenerator) recalculatePositions(batchSize int) ([]i
 	g.stateLock.Lock()
 
 	if g.state.Done {
-		return nil, gerrorrs.NewPotentialResultsExhausted()
+		return nil, gerrorrs.PotentialResultsExhaustedError
 	}
 	vocabularyLength := len(g.state.Config.Vocabulary)
 	log := int(math.Log10(float64(batchSize)) / math.Log10(float64(vocabularyLength)))

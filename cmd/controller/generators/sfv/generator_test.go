@@ -9,10 +9,10 @@ import (
 
 var expectedDecimal = []rune{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
 
-var expectedIncorrectLengthError error = gerrorrs.NewIncorrectResultLength()
-var expectedIncorrectVocabularyLengthError error = gerrorrs.NewIncorrectVocabularyLength()
-var expectedIncorrectFormatter = gerrorrs.NewIncorrectFormatter()
-var expectedCustomNotSupported = gerrorrs.NewCustomNotSupported()
+var expectedIncorrectVocabularyLengthError error = gerrorrs.IncorrectVocabularyLengthError
+var expectedIncorrectFormatter = gerrorrs.IncorrectFormatterError
+var expectedIncorrectLength = gerrorrs.IncorrectVocabularyLengthError
+var expectedCustomNotSupported = gerrorrs.CustomNotSupportedError
 
 func TestForCustomSuccess(t *testing.T) {
 
@@ -54,8 +54,8 @@ func TestForCustomError(t *testing.T) {
 		t.Error("expected error")
 	}
 
-	if !errors.Is(err, expectedIncorrectLengthError) {
-		t.Errorf("expected error %s, got %s", expectedIncorrectLengthError.Error(), err.Error())
+	if !errors.Is(err, expectedIncorrectLength) {
+		t.Errorf("expected error %s, got %s", expectedIncorrectLength.Error(), err.Error())
 	}
 
 	_, err = ForCustom(1, []rune{}, Simple)
