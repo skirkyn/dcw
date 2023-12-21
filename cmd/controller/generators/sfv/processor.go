@@ -3,7 +3,6 @@ package sfv
 import (
 	"errors"
 	"github.com/skirkyn/dcw/cmd/controller/generators"
-	"github.com/skirkyn/dcw/cmd/controller/generators/gerr"
 	"github.com/skirkyn/dcw/cmd/dto"
 )
 
@@ -23,7 +22,7 @@ func (gp *Processor[In, Out]) Process(val In) (Out, dto.Error) {
 func (gp *Processor[In, Out]) extractErrorTextAndDone(err error) dto.Error {
 
 	if err != nil {
-		return NewError(err.Error(), !errors.Is(err, gerr.PotentialResultsExhaustedError))
+		return NewError(err.Error(), !errors.Is(err, PotentialResultsExhaustedError))
 	}
 	return nil
 }
