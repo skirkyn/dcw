@@ -1,2 +1,4 @@
-github.com/zeromq/goczmq v4.1.0+incompatible h1:cGVQaU6kIwwrGso0Pgbl84tzAz/h7FJ3wYQjSonjFFc=
-github.com/zeromq/goczmq v4.1.0+incompatible/go.mod h1:1uZybAJoSRCvZMH2rZxEwWBSmC4T7CB/xQOfChwPEzg=
+github.com/notEpsilon/go-pair v0.0.0-20221220200415-e91ef28c6c0b h1:Gq68wUx0yA10riVTMiDfmGXadn0QzBOctwrolJVd+hw=
+github.com/notEpsilon/go-pair v0.0.0-20221220200415-e91ef28c6c0b/go.mod h1:cVLcN4/BCcounYLyaNpi5ffY03ew4yWM6lwD+l7U70w=
+github.com/pebbe/zmq4 v1.2.10 h1:wQkqRZ3CZeABIeidr3e8uQZMMH5YAykA/WN0L5zkd1c=
+github.com/pebbe/zmq4 v1.2.10/go.mod h1:nqnPueOapVhE2wItZ0uOErngczsJdLOGkebMxaO8r48=

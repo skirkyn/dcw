@@ -1,6 +1,6 @@
 package generators
 
-type Generator[T any] interface {
-	Next(batchSize int) ([]T, error)
+type Generator[In, Out any] interface {
+	Next(In) (Out, error)
 	CurrentState() ([]byte, error)
 }

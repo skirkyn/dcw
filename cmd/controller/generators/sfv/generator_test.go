@@ -3,24 +3,25 @@ package sfv
 import (
 	"errors"
 	"fmt"
-	"github.com/skirkyn/dcw/cmd/controller/generators/gerrorrs"
 	"testing"
 )
 
 var expectedDecimal = []rune{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
 
-var expectedIncorrectVocabularyLengthError error = gerrorrs.IncorrectVocabularyLengthError
-var expectedIncorrectFormatter = gerrorrs.IncorrectFormatterError
-var expectedIncorrectLength = gerrorrs.IncorrectVocabularyLengthError
-var expectedCustomNotSupported = gerrorrs.CustomNotSupportedError
+var expectedIncorrectVocabularyLengthError error = IncorrectVocabularyLengthError
+var expectedIncorrectFormatter = IncorrectFormatterError
+var expectedIncorrectLength = IncorrectVocabularyLengthError
+var expectedCustomNotSupported = CustomNotSupportedError
 
 func TestForCustomSuccess(t *testing.T) {
 
-	res, err := ForCustom(8, vocabularyCharacters[Decimals], Simple)
+	gen, err := ForCustom(8, vocabularyCharacters[Decimals], Simple)
 
 	if err != nil {
 		t.Error(err.Error())
 	}
+
+	res := gen.(*Generator)
 	state := res.state
 	config := state.Config
 
@@ -79,11 +80,13 @@ func TestForCustomError(t *testing.T) {
 
 func TestForStandardSuccess(t *testing.T) {
 
-	res, err := ForStandard(Decimals, 8, Simple)
+	gen, err := ForStandard(8, len(vocabularyCharacters[Decimals]), Simple)
 
 	if err != nil {
 		t.Error(err.Error())
 	}
+
+	res := gen.(*Generator)
 	state := res.state
 	config := state.Config
 
@@ -123,7 +126,9 @@ func TestForStandardError(t *testing.T) {
 }
 
 func TestRecalculatePositions(t *testing.T) {
-	res, _ := ForStandard(Decimals, 8, Simple)
+	gen, err := ForStandard(Decimals, 8, Simple)
+
+	res := gen.(*Generator)
 	p, err := res.recalculatePositions(5)
 	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 5})
 	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0})
@@ -131,7 +136,8 @@ func TestRecalculatePositions(t *testing.T) {
 		t.Error("shouldn't be done")
 	}
 
-	res, _ = ForStandard(Decimals, 8, Simple)
+	gen, _ = ForStandard(Decimals, 8, Simple)
+	res = gen.(*Generator)
 	p, err = res.recalculatePositions(16)
 	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 1, 6})
 	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0})
@@ -139,7 +145,8 @@ func TestRecalculatePositions(t *testing.T) {
 		t.Error("shouldn't be done")
 	}
 
-	res, _ = ForStandard(Hex, 8, Simple)
+	gen, _ = ForStandard(Hex, 8, Simple)
+	res = gen.(*Generator)
 	p, err = res.recalculatePositions(5000)
 	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 1, 3, 8, 8})
 	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0})
@@ -147,15 +154,18 @@ func TestRecalculatePositions(t *testing.T) {
 		t.Error("shouldn't be done")
 	}
 
-	res, _ = ForStandard(Hex, 10, Simple)
+	gen, _ = ForStandard(Hex, 10, Simple)
+	res = gen.(*Generator)
 	p, err = res.recalculatePositions(100)
 	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 0, 6, 4})
 	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	if res.state.Done {
 		t.Error("shouldn't be done")
 	}
-	res, _ = ForStandard(Base36, 4, Simple)
+	gen, _ = ForStandard(Base36, 4, Simple)
+	res = gen.(*Generator)
 	p, err = res.recalculatePositions(1679617)
+	// todo this is bs
 	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 1})
 	validatePositions(t, err, p, []int{0, 0, 0, 0})
 	if !res.state.Done {

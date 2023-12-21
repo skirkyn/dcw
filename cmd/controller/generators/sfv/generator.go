@@ -3,8 +3,7 @@ package sfv
 import (
 	"encoding/json"
 	"errors"
-	"github.com/skirkyn/dcw/cmd/controller/generators/formatters"
-	"github.com/skirkyn/dcw/cmd/controller/generators/gerrorrs"
+	"github.com/skirkyn/dcw/cmd/controller/generators"
 	"math"
 	"os"
 	"sort"
@@ -40,8 +39,8 @@ const (
 
 var (
 	formattersFunctions = map[Formatter]func([]rune) (string, error){
-		Simple: formatters.ToStringFromRunes,
-		Uuid4:  formatters.ToUuid4StringFromRunes,
+		Simple: ToStringFromRunes,
+		Uuid4:  ToUuid4StringFromRunes,
 	}
 )
 
@@ -57,23 +56,23 @@ type State struct {
 	Done             bool   `json:"done"`
 }
 
-type StringFromVocabularyGenerator struct {
+type Generator struct {
 	state     *State
 	stateLock *sync.RWMutex
 }
 
-const StringFromVocabularyStateFileDefaultLocation = "/home/sfa_gen.json"
+const StateFile = "/home/sfa_gen.json"
 
-func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (*StringFromVocabularyGenerator, error) {
+func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (generators.Generator[int, []string], error) {
 
 	if resultLength <= 0 {
-		return nil, gerrorrs.IncorrectResultLengthError
+		return nil, IncorrectResultLengthError
 	}
 	if vocabulary == nil || len(vocabulary) == 0 {
-		return nil, gerrorrs.IncorrectVocabularyLengthError
+		return nil, IncorrectVocabularyLengthError
 	}
 	if int(formatter) >= len(formattersFunctions) {
-		return nil, gerrorrs.IncorrectFormatterError
+		return nil, IncorrectFormatterError
 	}
 	stateVocabulary := append([]rune(nil), vocabulary...)
 	sort.Slice(stateVocabulary, func(i, j int) bool {
@@ -84,15 +83,15 @@ func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (*Strin
 
 }
 
-func ForStandard(vocabulary Vocabulary, resultLength int, formatter Formatter) (*StringFromVocabularyGenerator, error) {
+func ForStandard(vocabulary Vocabulary, resultLength int, formatter Formatter) (generators.Generator[int, []string], error) {
 
 	if vocabulary == Custom {
-		return nil, gerrorrs.CustomNotSupportedError
+		return nil, CustomNotSupportedError
 	}
 	return ForCustom(resultLength, vocabularyCharacters[vocabulary], formatter)
 }
 
-func Resume(stateFileLocation string) (*StringFromVocabularyGenerator, error) {
+func Resume(stateFileLocation string) (generators.Generator[int, []string], error) {
 	if stateFileLocation == "" {
 		return nil, errors.New("state file can't be empty")
 	}
@@ -112,12 +111,12 @@ func Resume(stateFileLocation string) (*StringFromVocabularyGenerator, error) {
 	return StringFromVocabularyGeneratorFromState(state)
 }
 
-func StringFromVocabularyGeneratorFromState(state State) (*StringFromVocabularyGenerator, error) {
+func StringFromVocabularyGeneratorFromState(state State) (generators.Generator[int, []string], error) {
 
-	return &StringFromVocabularyGenerator{&state, &sync.RWMutex{}}, nil
+	return &Generator{&state, &sync.RWMutex{}}, nil
 }
 
-func (g *StringFromVocabularyGenerator) Next(batchSize int) ([]string, error) {
+func (g *Generator) Next(batchSize int) ([]string, error) {
 
 	currentPositions, err := g.recalculatePositions(batchSize)
 
@@ -132,14 +131,14 @@ func (g *StringFromVocabularyGenerator) Next(batchSize int) ([]string, error) {
 	return chunk, err
 }
 
-func (g *StringFromVocabularyGenerator) CurrentState() ([]byte, error) {
+func (g *Generator) CurrentState() ([]byte, error) {
 	g.stateLock.RLock()
 	res, e := json.Marshal(g.state)
 	g.stateLock.RUnlock()
 	return res, e
 }
 
-func (g *StringFromVocabularyGenerator) generateBatch(res *[]string, current []rune, batchSize int, depth int, currentIndices []int) error {
+func (g *Generator) generateBatch(res *[]string, current []rune, batchSize int, depth int, currentIndices []int) error {
 
 	if len(*res) == batchSize {
 		return nil
@@ -166,7 +165,7 @@ func (g *StringFromVocabularyGenerator) generateBatch(res *[]string, current []r
 	return nil
 }
 
-func (g *StringFromVocabularyGenerator) updatePositions(positions *[]int, log int, sum int, index int) int {
+func (g *Generator) updatePositions(positions *[]int, log int, sum int, index int) int {
 	positionsDeref := *positions
 	vocabLength := len(g.state.Config.Vocabulary)
 
@@ -195,12 +194,12 @@ func (g *StringFromVocabularyGenerator) updatePositions(positions *[]int, log in
 	return newCarryover
 }
 
-func (g *StringFromVocabularyGenerator) recalculatePositions(batchSize int) ([]int, error) {
+func (g *Generator) recalculatePositions(batchSize int) ([]int, error) {
 
 	g.stateLock.Lock()
 
 	if g.state.Done {
-		return nil, gerrorrs.PotentialResultsExhaustedError
+		return nil, PotentialResultsExhaustedError
 	}
 	vocabularyLength := len(g.state.Config.Vocabulary)
 	log := int(math.Log10(float64(batchSize)) / math.Log10(float64(vocabularyLength)))

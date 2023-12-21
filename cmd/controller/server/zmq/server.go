@@ -2,65 +2,98 @@ package zmq
 
 import (
 	"fmt"
+	"github.com/pebbe/zmq4"
+	"github.com/skirkyn/dcw/cmd/cmn/nw"
+	"github.com/skirkyn/dcw/cmd/cmn/util"
 	"github.com/skirkyn/dcw/cmd/controller/server"
-	"github.com/skirkyn/dcw/cmd/dto"
-	"github.com/zeromq/goczmq"
 	"log"
+	"time"
 )
 
-type ZMQServer[Req dto.Request[any], Resp dto.Response[any]] struct {
-	handler             server.Handler[Req, Resp]
-	requestTransformer  dto.RequestTransformer[Req]
-	responseTransformer dto.ResponseTransformer[Resp]
-	clients             *map[string]*chan Resp
-	stop                *chan bool
+const internalAddress = "inproc://backend"
+
+type ServerConfig struct {
+	Workers                               int
+	Port                                  int
+	MaxSendResponseRetries                int
+	TimeToSleepBetweenSendResponseRetries time.Duration
+}
+type Server struct {
+	handler      server.Handler
+	shouldStop   *chan bool
+	stopError    *chan error
+	serverConfig ServerConfig
 }
 
-func NewZMQServer[Req dto.Request[any], Resp dto.Response[any]](handler server.Handler[Req, Resp],
-	requestTransformer dto.RequestTransformer[Req],
-	responseTransformer dto.ResponseTransformer[Resp]) server.Server[Req, Resp] {
-	clients := make(map[string]*chan Resp)
-	stop := make(chan bool)
-	return &ZMQServer[Req, Resp]{handler: handler, requestTransformer: requestTransformer, responseTransformer: responseTransformer, clients: &clients, stop: &stop}
+func NewZMQServer(handler server.Handler,
+	serverConfig ServerConfig) server.Server {
+	shouldStop := make(chan bool)
+	stopped := make(chan error)
+	return &Server{handler, &shouldStop, &stopped, serverConfig}
 }
 
-func (s *ZMQServer[Req, Resp]) Start(port int, host string) error {
-	router, err := goczmq.NewRouter(fmt.Sprintf("tcp://*:%d", port))
+func (s *Server) Start() error {
+	frontend, err := zmq4.NewSocket(zmq4.ROUTER)
 	if err != nil {
-		log.Printf("can't start the server %s", err.Error())
+		log.Printf("can't create socket %s", err.Error())
 		return err
 	}
-	dealer, err := goczmq.NewDealer(fmt.Sprintf("tcp://%s:%d", host, port))
+	defer nw.CloseSocket(frontend)
+
+	err = frontend.Bind(fmt.Sprintf("tcp://*:%d", s.serverConfig.Port))
 	if err != nil {
-		log.Printf("can't start the server %s", err.Error())
+		log.Printf("can't bind to the socket %s", err.Error())
 		return err
 	}
-	go s.startInternal(dealer, router)
-	return nil
+
+	backend, err := zmq4.NewSocket(zmq4.DEALER)
+	if err != nil {
+		log.Printf("can't create socket %s", err.Error())
+		return err
+	}
+	err = backend.Bind(internalAddress)
+
+	if err != nil {
+		log.Printf("can't bind to the socket %s", err.Error())
+		return err
+	}
+	for i := 0; i < s.serverConfig.Workers; i++ {
+		go s.startWorker(internalAddress, backend)
+	}
+
+	return zmq4.Proxy(frontend, backend, nil)
 }
 
-func (s *ZMQServer[Req, Resp]) Stop() {
-	*s.stop <- true
+func (s *Server) Stop() error {
+	*s.shouldStop <- true
+	return <-*s.stopError
 }
 
-func (s *ZMQServer[Req, Resp]) startInternal(dealer *goczmq.Sock, router *goczmq.Sock) {
-	defer router.Destroy()
+func (s *Server) startWorker(internalAddress string, backend *zmq4.Socket) {
+	worker, err := zmq4.NewSocket(zmq4.DEALER)
+	if err != nil {
+		log.Printf("can't create socket %s", err.Error())
+		return
+	}
+	defer nw.CloseSocket(worker)
+	err = worker.Connect(internalAddress)
 	for {
-		s.maybeProcessMessage(dealer, router)
+		s.maybeProcessMessage(worker)
 
 		select {
 
-		case shouldStop := <-*s.stop:
+		case shouldStop := <-*s.shouldStop:
 			if shouldStop {
 				log.Print("stopping the server")
+				s.stop(backend)
 				return
 			}
 		}
 	}
 }
 
-func (s *ZMQServer[Req, Resp]) maybeProcessMessage(dealer *goczmq.Sock, router *goczmq.Sock) {
-	request, err := dealer.RecvMessage()
+func (s *Server) maybeProcessMessage(worker *zmq4.Socket) {
+	request, err := worker.RecvMessage(0)
 	if err != nil {
 		log.Print(err)
 		return
@@ -70,44 +103,65 @@ func (s *ZMQServer[Req, Resp]) maybeProcessMessage(dealer *goczmq.Sock, router *
 		return
 	}
 
-	client := string(request[0])
-	channel, ok := (*s.clients)[client]
+	client, content := s.parseMessage(request)
 
-	if !ok {
-		*(*s.clients)[client] = make(chan Resp)
-		channel = (*s.clients)[client]
-	}
-
-	go s.handleRequest(request[1], channel)
-	go s.sendResponse(router, client)
+	respChan := make(chan []byte)
+	errChan := make(chan error)
+	go s.handleRequest(content, &respChan, &errChan)
+	go s.sendResponse(worker, client, &respChan, &errChan)
 }
 
-func (s *ZMQServer[Req, Resp]) handleRequest(data []byte, respChannel *chan Resp) {
-	transformed, err := s.requestTransformer.Transform(data)
-	if err != nil {
-		*respChannel <- dto.NewErrorResponse(err.Error())
-		return
+func (s *Server) toByteArray(input []string) []byte {
+	res := make([]byte, 0)
+
+	if input == nil {
+		return res
 	}
-	err = s.handler.Handle(transformed, respChannel)
+
+	for i := 0; i < len(input); i++ {
+		res = append(res, []byte((input)[i])...)
+	}
+
+	return res
+}
+func (s *Server) parseMessage(msg []string) (string, []byte) {
+	index := 1
+
+	if msg[1] == "" {
+		index++
+
+	}
+	return string(s.toByteArray(msg[:2])), s.toByteArray(msg[2:])
+}
+func (s *Server) handleRequest(data []byte, respChannel *chan []byte, errChannel *chan error) {
+	s.handler.Handle(data, respChannel, errChannel)
 }
 
-func (s *ZMQServer[Req, Resp]) sendResponse(router *goczmq.Sock, client string) {
-	channel, ok := (*s.clients)[client]
+func (s *Server) sendResponse(router *zmq4.Socket, client string, respChannel *chan []byte, errChannel *chan error) bool {
+	for {
+		select {
+		case resp := <-*respChannel:
+			return s.respond(router, client, resp)
+		case err := <-*errChannel:
+			return s.respond(router, client, util.StrToByteSlice(err.Error()))
+		}
+	}
+}
 
-	if !ok {
-		log.Printf("can't send response to the client, client is lost %s", client)
-		return
-	}
+func (s *Server) respond(router *zmq4.Socket, client string, resp []byte) bool {
+	for i := s.serverConfig.MaxSendResponseRetries; i > 0; i-- {
 
-	resp := <-*channel
-	transformed, err := s.responseTransformer.Transform(resp)
-	err = router.SendFrame([]byte(client), goczmq.FlagMore)
-	if err != nil {
-		log.Printf("can't send response to the client %s", client)
-		return
+		_, err := router.SendMessage(client, resp)
+		if err != nil {
+			log.Printf("couldn't send the response, will retry %s", err.Error())
+			time.Sleep(s.serverConfig.TimeToSleepBetweenSendResponseRetries * time.Second)
+		} else {
+			return true
+		}
 	}
-	err = router.SendFrame(transformed, goczmq.FlagNone)
-	if err != nil {
-		log.Print(err)
-	}
+	return false
+}
+
+func (s *Server) stop(backend *zmq4.Socket) {
+	*s.stopError <- backend.Close()
 }

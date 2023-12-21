@@ -1,12 +1,9 @@
-package formatters
+package sfv
 
 import (
 	"errors"
-	"github.com/skirkyn/dcw/cmd/controller/generators/gerrorrs"
 	"testing"
 )
-
-var expectedError error = gerrorrs.NewIncorrectResultLength()
 
 func TestToStringFromRunesSuccess(t *testing.T) {
 
@@ -27,8 +24,8 @@ func TestToStringFromRunesError(t *testing.T) {
 	if err == nil {
 		t.Error("error expected")
 	}
-	if !errors.Is(err, gerrorrs.NewIncorrectResultLength()) {
-		t.Errorf("expected error %s, got %s", expectedError.Error(), err.Error())
+	if !errors.Is(err, IncorrectResultLengthError) {
+		t.Errorf("expected error %s, got %s", IncorrectResultLengthError.Error(), err.Error())
 	}
 }
 
@@ -53,13 +50,13 @@ func TestToUuid4StringFromRunesError(t *testing.T) {
 		t.Error("error expected")
 	}
 	if !errors.Is(err, err) {
-		t.Errorf("expected error %s, got %s", expectedError.Error(), err.Error())
+		t.Errorf("expected error %s, got %s", IncorrectResultLengthError.Error(), err.Error())
 	}
 	_, err = ToUuid4StringFromRunes([]rune{'1', '2'})
 	if err == nil {
 		t.Error("error expected")
 	}
 	if !errors.Is(err, err) {
-		t.Errorf("expected error %s, got %s", expectedError.Error(), err.Error())
+		t.Errorf("expected error %s, got %s", IncorrectResultLengthError.Error(), err.Error())
 	}
 }

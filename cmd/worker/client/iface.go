@@ -1,7 +1,6 @@
 package client
 
-import "github.com/skirkyn/dcw/cmd/dto"
-
-type Client[Req dto.Request[Req], Resp dto.Response[Resp]] interface {
-	Send(Req) Resp
+type Client interface {
+	Call([]byte) ([]byte, error)
+	Close() error
 }

@@ -4,11 +4,15 @@ import (
 	"github.com/skirkyn/dcw/cmd/dto"
 )
 
-type Server[Req dto.Request[any], Resp dto.Response[any]] interface {
-	Start(port int, host string) error
-	Stop()
+type Server interface {
+	Start() error
+	Stop() error
 }
 
-type Handler[Req dto.Request[any], Resp dto.Response[any]] interface {
-	Handle(Req, *chan Resp) error
+type Handler interface {
+	Handle([]byte, *chan []byte, *chan error)
+}
+
+type Processor[In any, Out any] interface {
+	Process(In) dto.Response[Out]
 }
