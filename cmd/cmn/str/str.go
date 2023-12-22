@@ -1,4 +1,4 @@
-package util
+package str
 
 func StrToByteSlice(str string) []byte {
 	res := []byte(str)

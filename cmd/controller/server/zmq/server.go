@@ -4,32 +4,32 @@ import (
 	"fmt"
 	"github.com/pebbe/zmq4"
 	"github.com/skirkyn/dcw/cmd/cmn/nw"
-	"github.com/skirkyn/dcw/cmd/cmn/util"
-	"github.com/skirkyn/dcw/cmd/controller/server"
+	"github.com/skirkyn/dcw/cmd/cmn/str"
+	"github.com/skirkyn/dcw/cmd/controller"
 	"log"
 	"time"
 )
 
 const internalAddress = "inproc://backend"
 
-type ServerConfig struct {
+type Config struct {
 	Workers                               int
 	Port                                  int
 	MaxSendResponseRetries                int
 	TimeToSleepBetweenSendResponseRetries time.Duration
 }
 type Server struct {
-	handler      server.Handler
-	shouldStop   *chan bool
-	stopError    *chan error
-	serverConfig ServerConfig
+	handler      main.Handler
+	shouldStop   chan bool
+	stopError    chan error
+	serverConfig Config
 }
 
-func NewZMQServer(handler server.Handler,
-	serverConfig ServerConfig) server.Server {
+func NewServer(handler main.Handler,
+	serverConfig Config) main.Server {
 	shouldStop := make(chan bool)
 	stopped := make(chan error)
-	return &Server{handler, &shouldStop, &stopped, serverConfig}
+	return &Server{handler, shouldStop, stopped, serverConfig}
 }
 
 func (s *Server) Start() error {
@@ -65,8 +65,8 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Stop() error {
-	*s.shouldStop <- true
-	return <-*s.stopError
+	s.shouldStop <- true
+	return <-s.stopError
 }
 
 func (s *Server) startWorker(internalAddress string, backend *zmq4.Socket) {
@@ -82,7 +82,7 @@ func (s *Server) startWorker(internalAddress string, backend *zmq4.Socket) {
 
 		select {
 
-		case shouldStop := <-*s.shouldStop:
+		case shouldStop := <-s.shouldStop:
 			if shouldStop {
 				log.Print("stopping the server")
 				s.stop(backend)
@@ -107,8 +107,8 @@ func (s *Server) maybeProcessMessage(worker *zmq4.Socket) {
 
 	respChan := make(chan []byte)
 	errChan := make(chan error)
-	go s.handleRequest(content, &respChan, &errChan)
-	go s.sendResponse(worker, client, &respChan, &errChan)
+	go s.handleRequest(content, respChan, errChan)
+	go s.sendResponse(worker, client, respChan, errChan)
 }
 
 func (s *Server) toByteArray(input []string) []byte {
@@ -133,17 +133,17 @@ func (s *Server) parseMessage(msg []string) (string, []byte) {
 	}
 	return string(s.toByteArray(msg[:2])), s.toByteArray(msg[2:])
 }
-func (s *Server) handleRequest(data []byte, respChannel *chan []byte, errChannel *chan error) {
+func (s *Server) handleRequest(data []byte, respChannel chan []byte, errChannel chan error) {
 	s.handler.Handle(data, respChannel, errChannel)
 }
 
-func (s *Server) sendResponse(router *zmq4.Socket, client string, respChannel *chan []byte, errChannel *chan error) bool {
+func (s *Server) sendResponse(router *zmq4.Socket, client string, respChannel chan []byte, errChannel chan error) bool {
 	for {
 		select {
-		case resp := <-*respChannel:
+		case resp := <-respChannel:
 			return s.respond(router, client, resp)
-		case err := <-*errChannel:
-			return s.respond(router, client, util.StrToByteSlice(err.Error()))
+		case err := <-errChannel:
+			return s.respond(router, client, str.StrToByteSlice(err.Error()))
 		}
 	}
 }
@@ -163,5 +163,5 @@ func (s *Server) respond(router *zmq4.Socket, client string, resp []byte) bool {
 }
 
 func (s *Server) stop(backend *zmq4.Socket) {
-	*s.stopError <- backend.Close()
+	s.stopError <- backend.Close()
 }

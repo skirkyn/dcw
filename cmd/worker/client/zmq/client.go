@@ -3,14 +3,14 @@ package zmq
 import (
 	"fmt"
 	"github.com/pebbe/zmq4"
-	"github.com/skirkyn/dcw/cmd/cmn/util"
+	"github.com/skirkyn/dcw/cmd/cmn/str"
 	"github.com/skirkyn/dcw/cmd/worker/client"
 	"log"
 	"sync"
 	"time"
 )
 
-type ClientConfig struct {
+type Config struct {
 	Host                                 string
 	Port                                 int
 	Id                                   string
@@ -19,12 +19,12 @@ type ClientConfig struct {
 }
 type Client struct {
 	socket    *zmq4.Socket
-	config    ClientConfig
+	config    Config
 	connLock  *sync.Mutex
 	connected bool
 }
 
-func NewZMQClient(config ClientConfig) (client.Client, error) {
+func NewZMQClient(config Config) (client.Client, error) {
 	socket, err := zmq4.NewSocket(zmq4.DEALER)
 	if err != nil {
 		log.Printf("can't create socket %s", err.Error())
@@ -58,7 +58,7 @@ func (c *Client) Call(req []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return util.StrSliceToByteSlice(msg), err
+	return str.StrSliceToByteSlice(msg), err
 }
 
 func (c *Client) Close() error {

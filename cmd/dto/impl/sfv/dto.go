@@ -11,11 +11,11 @@ func (r Request) Body() int {
 }
 
 type Response struct {
-	Data []string   `json:"data"`
-	Err  *dto.Error `json:"err"`
+	Data []string  `json:"data"`
+	Err  dto.Error `json:"sfv"`
 }
 
-func (r Response) Error() *dto.Error {
+func (r Response) Error() dto.Error {
 	return r.Err
 }
 

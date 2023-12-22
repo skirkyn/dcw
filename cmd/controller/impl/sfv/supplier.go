@@ -3,7 +3,6 @@ package sfv
 import (
 	"encoding/json"
 	"errors"
-	"github.com/skirkyn/dcw/cmd/controller/generators"
 	"math"
 	"os"
 	"sort"
@@ -56,14 +55,14 @@ type State struct {
 	Done             bool   `json:"done"`
 }
 
-type Generator struct {
+type Supplier struct {
 	state     *State
 	stateLock *sync.RWMutex
 }
 
 const StateFile = "/home/sfa_gen.json"
 
-func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (generators.Generator[int, []string], error) {
+func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (*Supplier, error) {
 
 	if resultLength <= 0 {
 		return nil, IncorrectResultLengthError
@@ -83,7 +82,7 @@ func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (genera
 
 }
 
-func ForStandard(vocabulary Vocabulary, resultLength int, formatter Formatter) (generators.Generator[int, []string], error) {
+func ForStandard(vocabulary Vocabulary, resultLength int, formatter Formatter) (*Supplier, error) {
 
 	if vocabulary == Custom {
 		return nil, CustomNotSupportedError
@@ -91,7 +90,7 @@ func ForStandard(vocabulary Vocabulary, resultLength int, formatter Formatter) (
 	return ForCustom(resultLength, vocabularyCharacters[vocabulary], formatter)
 }
 
-func Resume(stateFileLocation string) (generators.Generator[int, []string], error) {
+func Resume(stateFileLocation string) (*Supplier, error) {
 	if stateFileLocation == "" {
 		return nil, errors.New("state file can't be empty")
 	}
@@ -111,12 +110,12 @@ func Resume(stateFileLocation string) (generators.Generator[int, []string], erro
 	return StringFromVocabularyGeneratorFromState(state)
 }
 
-func StringFromVocabularyGeneratorFromState(state State) (generators.Generator[int, []string], error) {
+func StringFromVocabularyGeneratorFromState(state State) (*Supplier, error) {
 
-	return &Generator{&state, &sync.RWMutex{}}, nil
+	return &Supplier{&state, &sync.RWMutex{}}, nil
 }
 
-func (g *Generator) Next(batchSize int) ([]string, error) {
+func (g *Supplier) Next(batchSize int) ([]string, error) {
 
 	currentPositions, err := g.recalculatePositions(batchSize)
 
@@ -131,14 +130,14 @@ func (g *Generator) Next(batchSize int) ([]string, error) {
 	return chunk, err
 }
 
-func (g *Generator) CurrentState() ([]byte, error) {
+func (g *Supplier) CurrentState() ([]byte, error) {
 	g.stateLock.RLock()
 	res, e := json.Marshal(g.state)
 	g.stateLock.RUnlock()
 	return res, e
 }
 
-func (g *Generator) generateBatch(res *[]string, current []rune, batchSize int, depth int, currentIndices []int) error {
+func (g *Supplier) generateBatch(res *[]string, current []rune, batchSize int, depth int, currentIndices []int) error {
 
 	if len(*res) == batchSize {
 		return nil
@@ -165,7 +164,7 @@ func (g *Generator) generateBatch(res *[]string, current []rune, batchSize int, 
 	return nil
 }
 
-func (g *Generator) updatePositions(positions *[]int, log int, sum int, index int) int {
+func (g *Supplier) updatePositions(positions *[]int, log int, sum int, index int) int {
 	positionsDeref := *positions
 	vocabLength := len(g.state.Config.Vocabulary)
 
@@ -194,7 +193,7 @@ func (g *Generator) updatePositions(positions *[]int, log int, sum int, index in
 	return newCarryover
 }
 
-func (g *Generator) recalculatePositions(batchSize int) ([]int, error) {
+func (g *Supplier) recalculatePositions(batchSize int) ([]int, error) {
 
 	g.stateLock.Lock()
 

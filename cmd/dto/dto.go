@@ -9,14 +9,16 @@ type Request[In any] interface {
 }
 
 type Response[Out any] interface {
-	Error() *Error
-	Body() *Out
+	Error() Error
+	Body() Out
 }
 
 type RequestTransformer[In any] interface {
-	Transform([]byte) (In, error)
+	ToDto([]byte) (Request[In], error)
+	FromDto(Request[In]) ([]byte, error)
 }
 
 type ResponseTransformer[Out any] interface {
-	Transform(*Response[Out]) ([]byte, error)
+	FromDto(Response[Out]) ([]byte, error)
+	ToDto([]byte) (Response[Out], error)
 }

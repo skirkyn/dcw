@@ -21,8 +21,7 @@ func TestForCustomSuccess(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	res := gen.(*Generator)
-	state := res.state
+	state := gen.state
 	config := state.Config
 
 	for i := 0; i < len(state.CurrentPositions); i++ {
@@ -86,8 +85,7 @@ func TestForStandardSuccess(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	res := gen.(*Generator)
-	state := res.state
+	state := gen.state
 	config := state.Config
 
 	for i := 0; i < len(state.CurrentPositions); i++ {
@@ -128,47 +126,46 @@ func TestForStandardError(t *testing.T) {
 func TestRecalculatePositions(t *testing.T) {
 	gen, err := ForStandard(Decimals, 8, Simple)
 
-	res := gen.(*Generator)
-	p, err := res.recalculatePositions(5)
-	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 5})
+	p, err := gen.recalculatePositions(5)
+	validatePositions(t, err, gen.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 5})
 	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0})
-	if res.state.Done {
+	if gen.state.Done {
 		t.Error("shouldn't be done")
 	}
 
 	gen, _ = ForStandard(Decimals, 8, Simple)
-	res = gen.(*Generator)
-	p, err = res.recalculatePositions(16)
-	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 1, 6})
+
+	p, err = gen.recalculatePositions(16)
+	validatePositions(t, err, gen.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 1, 6})
 	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0})
-	if res.state.Done {
+	if gen.state.Done {
 		t.Error("shouldn't be done")
 	}
 
 	gen, _ = ForStandard(Hex, 8, Simple)
-	res = gen.(*Generator)
-	p, err = res.recalculatePositions(5000)
-	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 1, 3, 8, 8})
+
+	p, err = gen.recalculatePositions(5000)
+	validatePositions(t, err, gen.state.CurrentPositions, []int{0, 0, 0, 0, 1, 3, 8, 8})
 	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0})
-	if res.state.Done {
+	if gen.state.Done {
 		t.Error("shouldn't be done")
 	}
 
 	gen, _ = ForStandard(Hex, 10, Simple)
-	res = gen.(*Generator)
-	p, err = res.recalculatePositions(100)
-	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 0, 6, 4})
+
+	p, err = gen.recalculatePositions(100)
+	validatePositions(t, err, gen.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 0, 6, 4})
 	validatePositions(t, err, p, []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
-	if res.state.Done {
+	if gen.state.Done {
 		t.Error("shouldn't be done")
 	}
 	gen, _ = ForStandard(Base36, 4, Simple)
-	res = gen.(*Generator)
-	p, err = res.recalculatePositions(1679617)
+
+	p, err = gen.recalculatePositions(1679617)
 	// todo this is bs
-	validatePositions(t, err, res.state.CurrentPositions, []int{0, 0, 0, 1})
+	validatePositions(t, err, gen.state.CurrentPositions, []int{0, 0, 0, 1})
 	validatePositions(t, err, p, []int{0, 0, 0, 0})
-	if !res.state.Done {
+	if !gen.state.Done {
 		t.Error("should be done")
 	}
 }
