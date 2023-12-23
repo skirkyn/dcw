@@ -30,7 +30,7 @@ func (gh *StringGeneratorHandler) Handle(reqRaw []byte) []byte {
 
 	result, err := gh.supplier.Supply(req.Body())
 	//return gp.toResponse(res, sfv)
-	resp := sfv.Response{Data: result, Err: extractErrorTextAndDone(err)}
+	resp := sfv.Response[[]string]{Data: result, Err: extractErrorTextAndDone(err)}
 
 	bytes, err := gh.responseTransformer(resp)
 	if err != nil {
@@ -43,7 +43,7 @@ func (gh *StringGeneratorHandler) Handle(reqRaw []byte) []byte {
 func (gh *StringGeneratorHandler) handleError(message string) []byte {
 	log.Printf("cant transform the request %s", message)
 	//todo limit retries
-	resp, err := gh.responseTransformer(sfv.Response{Err: sfv.NewError("error converting request", true)})
+	resp, err := gh.responseTransformer(sfv.Response[[]string]{Err: sfv.NewError("error converting request", true)})
 	if err != nil {
 		// we cant even transform it so something bizarre is going on
 		return []byte(err.Error())

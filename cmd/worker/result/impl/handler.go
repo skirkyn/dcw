@@ -5,17 +5,15 @@ import (
 	"github.com/skirkyn/dcw/cmd/dto"
 	"github.com/skirkyn/dcw/cmd/worker/client"
 	"github.com/skirkyn/dcw/cmd/worker/result"
-	"github.com/skirkyn/dcw/cmd/worker/runner"
 )
 
 type Handler[In any] struct {
 	client             client.Client
 	requestTransformer dto.RequestTransformer[In]
-	runner             runner.Runner
 }
 
-func NewHandler[In any](client client.Client, requestTransformer dto.RequestTransformer[In], runner runner.Runner) result.Handler[In] {
-	return &Handler[In]{client, requestTransformer, runner}
+func NewHandler[In any](client client.Client, requestTransformer dto.RequestTransformer[In]) result.Handler[In] {
+	return &Handler[In]{client, requestTransformer}
 }
 
 func (h *Handler[In]) Handle(res dto.Request[In]) error {

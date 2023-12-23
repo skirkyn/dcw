@@ -61,11 +61,15 @@ func (r *Runner[Result]) doWork(req []byte) {
 
 	result := r.worker.Process(resp)
 	if result != nil {
+		// todo add retries
 		err = r.resultHandler.Handle(result)
 		if err != nil {
-			log.Printf("error handling result %s", err.Error())
+			log.Printf("error handling result %s %s", err.Error())
 
+		} else {
+			r.Stop()
 		}
+
 	}
 
 }
