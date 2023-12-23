@@ -3,7 +3,7 @@ package zmq
 import (
 	"fmt"
 	"github.com/pebbe/zmq4"
-	"github.com/skirkyn/dcw/cmd/cmn/str"
+	"github.com/skirkyn/dcw/cmd/util/bytz"
 	"github.com/skirkyn/dcw/cmd/worker/client"
 	"log"
 	"sync"
@@ -49,16 +49,20 @@ func NewZMQClient(config Config) (client.Client, error) {
 func (c *Client) Call(req []byte) ([]byte, error) {
 	c.connLock.Lock()
 	_, err := c.socket.SendMessage(req)
+	c.connLock.Unlock()
+
 	if err != nil {
-		c.connLock.Unlock()
 		return nil, err
 	}
+
+	c.connLock.Lock()
 	msg, err := c.socket.RecvMessage(0)
 	c.connLock.Unlock()
+
 	if err != nil {
 		return nil, err
 	}
-	return str.StrSliceToByteSlice(msg), err
+	return bytz.SliceToByteSlice(msg), err
 }
 
 func (c *Client) Close() error {

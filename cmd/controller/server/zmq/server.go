@@ -3,10 +3,13 @@ package zmq
 import (
 	"fmt"
 	"github.com/pebbe/zmq4"
-	"github.com/skirkyn/dcw/cmd/cmn/nw"
-	"github.com/skirkyn/dcw/cmd/cmn/str"
-	"github.com/skirkyn/dcw/cmd/controller"
+	"github.com/skirkyn/dcw/cmd/controller/handler"
+	"github.com/skirkyn/dcw/cmd/controller/server"
+	"github.com/skirkyn/dcw/cmd/util/bytz"
+	"github.com/skirkyn/dcw/cmd/util/socket"
 	"log"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -18,86 +21,104 @@ type Config struct {
 	MaxSendResponseRetries                int
 	TimeToSleepBetweenSendResponseRetries time.Duration
 }
+
 type Server struct {
-	handler      main.Handler
-	shouldStop   chan bool
-	stopError    chan error
-	serverConfig Config
+	handler         handler.Handler
+	stopped         *atomic.Bool
+	pendingRequests *sync.WaitGroup
+	serverConfig    Config
+	backend         *zmq4.Socket
+	frontend        *zmq4.Socket
 }
 
-func NewServer(handler main.Handler,
-	serverConfig Config) main.Server {
-	shouldStop := make(chan bool)
-	stopped := make(chan error)
-	return &Server{handler, shouldStop, stopped, serverConfig}
-}
-
-func (s *Server) Start() error {
+func NewServer(handler handler.Handler,
+	serverConfig Config) (server.Server, error) {
+	backend, err := zmq4.NewSocket(zmq4.DEALER)
+	if err != nil {
+		log.Printf("can't create socket %s", err.Error())
+		return nil, err
+	}
 	frontend, err := zmq4.NewSocket(zmq4.ROUTER)
 	if err != nil {
 		log.Printf("can't create socket %s", err.Error())
-		return err
+		return nil, err
 	}
-	defer nw.CloseSocket(frontend)
+	return &Server{handler, &atomic.Bool{}, &sync.WaitGroup{}, serverConfig, backend, frontend}, nil
+}
 
-	err = frontend.Bind(fmt.Sprintf("tcp://*:%d", s.serverConfig.Port))
+func (s *Server) Start() error {
+
+	err := s.frontend.Bind(fmt.Sprintf("tcp://*:%d", s.serverConfig.Port))
 	if err != nil {
 		log.Printf("can't bind to the socket %s", err.Error())
 		return err
 	}
 
-	backend, err := zmq4.NewSocket(zmq4.DEALER)
 	if err != nil {
 		log.Printf("can't create socket %s", err.Error())
 		return err
 	}
-	err = backend.Bind(internalAddress)
+	err = s.backend.Bind(internalAddress)
 
 	if err != nil {
 		log.Printf("can't bind to the socket %s", err.Error())
 		return err
 	}
 	for i := 0; i < s.serverConfig.Workers; i++ {
-		go s.startWorker(internalAddress, backend)
+		go s.startWorker(internalAddress)
 	}
 
-	return zmq4.Proxy(frontend, backend, nil)
+	return zmq4.Proxy(s.frontend, s.backend, nil)
 }
 
 func (s *Server) Stop() error {
-	s.shouldStop <- true
-	return <-s.stopError
+	s.stopped.Store(true)
+	s.pendingRequests.Wait()
+
+	err := s.frontend.Close()
+	if err != nil {
+		log.Printf("can't close socket %s", err.Error())
+	}
+	err = s.backend.Close()
+	if err != nil {
+		log.Printf("can't close socket %s", err.Error())
+
+	}
+	return err
 }
 
-func (s *Server) startWorker(internalAddress string, backend *zmq4.Socket) {
+func (s *Server) startWorker(internalAddress string) {
 	worker, err := zmq4.NewSocket(zmq4.DEALER)
+	lock := sync.Mutex{}
 	if err != nil {
 		log.Printf("can't create socket %s", err.Error())
 		return
 	}
-	defer nw.CloseSocket(worker)
+	defer socket.CloseSocket(worker)
 	err = worker.Connect(internalAddress)
+	if err != nil {
+		log.Printf("can't connect worker socket %s", err.Error())
+		return
+	}
 	for {
-		s.maybeProcessMessage(worker)
-
-		select {
-
-		case shouldStop := <-s.shouldStop:
-			if shouldStop {
-				log.Print("stopping the server")
-				s.stop(backend)
-				return
-			}
+		if s.stopped.Load() {
+			return
 		}
+		go s.maybeProcessMessage(worker, &lock)
 	}
 }
 
-func (s *Server) maybeProcessMessage(worker *zmq4.Socket) {
-	request, err := worker.RecvMessage(0)
+func (s *Server) maybeProcessMessage(worker *zmq4.Socket, lock *sync.Mutex) {
+
+	lock.Lock()
+	request, err := worker.RecvMessage(zmq4.DONTWAIT)
+	lock.Unlock()
+
 	if err != nil {
 		log.Print(err)
 		return
 	}
+
 	if len(request) != 2 {
 		log.Print("invalid request ", request)
 		return
@@ -105,25 +126,11 @@ func (s *Server) maybeProcessMessage(worker *zmq4.Socket) {
 
 	client, content := s.parseMessage(request)
 
-	respChan := make(chan []byte)
-	errChan := make(chan error)
-	go s.handleRequest(content, respChan, errChan)
-	go s.sendResponse(worker, client, respChan, errChan)
+	res := s.handler.Handle(content)
+
+	s.respond(worker, lock, client, res)
 }
 
-func (s *Server) toByteArray(input []string) []byte {
-	res := make([]byte, 0)
-
-	if input == nil {
-		return res
-	}
-
-	for i := 0; i < len(input); i++ {
-		res = append(res, []byte((input)[i])...)
-	}
-
-	return res
-}
 func (s *Server) parseMessage(msg []string) (string, []byte) {
 	index := 1
 
@@ -131,37 +138,22 @@ func (s *Server) parseMessage(msg []string) (string, []byte) {
 		index++
 
 	}
-	return string(s.toByteArray(msg[:2])), s.toByteArray(msg[2:])
-}
-func (s *Server) handleRequest(data []byte, respChannel chan []byte, errChannel chan error) {
-	s.handler.Handle(data, respChannel, errChannel)
+	return string(bytz.SliceToByteSlice(msg[:2])), bytz.SliceToByteSlice(msg[2:])
 }
 
-func (s *Server) sendResponse(router *zmq4.Socket, client string, respChannel chan []byte, errChannel chan error) bool {
-	for {
-		select {
-		case resp := <-respChannel:
-			return s.respond(router, client, resp)
-		case err := <-errChannel:
-			return s.respond(router, client, str.StrToByteSlice(err.Error()))
-		}
-	}
-}
-
-func (s *Server) respond(router *zmq4.Socket, client string, resp []byte) bool {
+func (s *Server) respond(router *zmq4.Socket, lock *sync.Mutex, client string, resp []byte) {
 	for i := s.serverConfig.MaxSendResponseRetries; i > 0; i-- {
 
+		lock.Lock()
 		_, err := router.SendMessage(client, resp)
-		if err != nil {
-			log.Printf("couldn't send the response, will retry %s", err.Error())
-			time.Sleep(s.serverConfig.TimeToSleepBetweenSendResponseRetries * time.Second)
-		} else {
-			return true
-		}
-	}
-	return false
-}
+		lock.Unlock()
 
-func (s *Server) stop(backend *zmq4.Socket) {
-	s.stopError <- backend.Close()
+		if err == nil {
+			return
+		}
+
+		log.Printf("couldn't send the response, will retry %s", err.Error())
+		time.Sleep(s.serverConfig.TimeToSleepBetweenSendResponseRetries * time.Second)
+
+	}
 }

@@ -1,5 +1,5 @@
-package supplier
+package work
 
 type Supplier[In any, Out any] interface {
-	Next(In) (Out, error)
+	Supply(In) (Out, error)
 }

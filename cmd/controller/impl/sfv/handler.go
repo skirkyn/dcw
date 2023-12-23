@@ -3,56 +3,53 @@ package sfv
 import (
 	"errors"
 	"github.com/skirkyn/dcw/cmd/controller/handler"
-	"github.com/skirkyn/dcw/cmd/controller/supplier"
+	"github.com/skirkyn/dcw/cmd/controller/work"
 	"github.com/skirkyn/dcw/cmd/dto"
-	"github.com/skirkyn/dcw/cmd/dto/impl/sfv"
+	"github.com/skirkyn/dcw/cmd/dto/sfv"
 	"log"
 )
 
 type StringGeneratorHandler struct {
-	supplier            supplier.Supplier[int, []string]
+	supplier            work.Supplier[int, []string]
 	requestTransformer  func([]byte) (dto.Request[int], error)
 	responseTransformer func(dto.Response[[]string]) ([]byte, error)
 }
 
-func NewGeneratorHandler(supplier supplier.Supplier[int, []string],
+func NewGeneratorHandler(supplier work.Supplier[int, []string],
 	requestTransformer func([]byte) (dto.Request[int], error),
 	responseTransformer func(dto.Response[[]string]) ([]byte, error)) handler.Handler {
 	return &StringGeneratorHandler{supplier, requestTransformer, responseTransformer}
 }
 
-func (gh *StringGeneratorHandler) Handle(reqRaw []byte,
-	respChannel chan []byte, errChannel chan error) {
+func (gh *StringGeneratorHandler) Handle(reqRaw []byte) []byte {
 	req, err := gh.requestTransformer(reqRaw)
 
-	if err != nil && gh.handleError(err.Error(), respChannel, errChannel) != nil {
-		return
+	if err != nil {
+		return gh.handleError(err.Error())
 	}
 
-	result, err := gh.supplier.Next(req.Body())
+	result, err := gh.supplier.Supply(req.Body())
 	//return gp.toResponse(res, sfv)
 	resp := sfv.Response{Data: result, Err: extractErrorTextAndDone(err)}
 
 	bytes, err := gh.responseTransformer(resp)
-	if err != nil && gh.handleError(err.Error(), respChannel, errChannel) != nil {
-		return
+	if err != nil {
+		return gh.handleError(err.Error())
 	}
 
-	respChannel <- bytes
+	return bytes
 }
 
-func (gh *StringGeneratorHandler) handleError(message string, respChannel chan []byte, errChannel chan error) error {
+func (gh *StringGeneratorHandler) handleError(message string) []byte {
 	log.Printf("cant transform the request %s", message)
 	//todo limit retries
 	resp, err := gh.responseTransformer(sfv.Response{Err: sfv.NewError("error converting request", true)})
-
 	if err != nil {
-		errChannel <- err
-	} else {
-		respChannel <- resp
+		// we cant even transform it so something bizarre is going on
+		return []byte(err.Error())
 	}
 
-	return err
+	return resp
 }
 
 func extractErrorTextAndDone(err error) dto.Error {

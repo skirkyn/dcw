@@ -1,4 +1,4 @@
-package nw
+package socket
 
 import (
 	"github.com/pebbe/zmq4"

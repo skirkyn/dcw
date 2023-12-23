@@ -1,10 +1,18 @@
 package dto
 
+type Type int
+
+const (
+	Supply Type = iota
+	Result
+)
+
 type Error interface {
 	Message() string
 	Retry() bool
 }
 type Request[In any] interface {
+	Type() Type
 	Body() In
 }
 
@@ -14,11 +22,11 @@ type Response[Out any] interface {
 }
 
 type RequestTransformer[In any] interface {
-	ToDto([]byte) (Request[In], error)
-	FromDto(Request[In]) ([]byte, error)
+	BytesToRequest([]byte) (Request[In], error)
+	RequestToBytes(Request[In]) ([]byte, error)
 }
 
 type ResponseTransformer[Out any] interface {
-	FromDto(Response[Out]) ([]byte, error)
-	ToDto([]byte) (Response[Out], error)
+	ResponseToBytes(Response[Out]) ([]byte, error)
+	BytesToResponse([]byte) (Response[Out], error)
 }

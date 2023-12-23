@@ -1,4 +1,4 @@
-github.com/notEpsilon/go-pair v0.0.0-20221220200415-e91ef28c6c0b h1:Gq68wUx0yA10riVTMiDfmGXadn0QzBOctwrolJVd+hw=
-github.com/notEpsilon/go-pair v0.0.0-20221220200415-e91ef28c6c0b/go.mod h1:cVLcN4/BCcounYLyaNpi5ffY03ew4yWM6lwD+l7U70w=
 github.com/pebbe/zmq4 v1.2.10 h1:wQkqRZ3CZeABIeidr3e8uQZMMH5YAykA/WN0L5zkd1c=
 github.com/pebbe/zmq4 v1.2.10/go.mod h1:nqnPueOapVhE2wItZ0uOErngczsJdLOGkebMxaO8r48=
+golang.org/x/sync v0.5.0 h1:60k92dhOjHxJkrqnwsfl8KuaHbn/5dl0lUPUklKo3qE=
+golang.org/x/sync v0.5.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=

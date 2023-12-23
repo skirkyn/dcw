@@ -1,5 +1,7 @@
 package worker
 
-type Worker[Out any] interface {
-	Process([]byte) (Out, error)
+import "github.com/skirkyn/dcw/cmd/dto"
+
+type Worker[Result any] interface {
+	Process([]byte) dto.Request[Result]
 }
