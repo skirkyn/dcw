@@ -1,4 +1,4 @@
-package bytz
+package util
 
 func IntToByteSlice(x int) []byte {
 	buf := make([]byte, 4)

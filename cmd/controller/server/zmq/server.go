@@ -3,10 +3,9 @@ package zmq
 import (
 	"fmt"
 	"github.com/pebbe/zmq4"
-	"github.com/skirkyn/dcw/cmd/controller/handler"
+	"github.com/skirkyn/dcw/cmd/common"
 	"github.com/skirkyn/dcw/cmd/controller/server"
-	"github.com/skirkyn/dcw/cmd/util/bytz"
-	"github.com/skirkyn/dcw/cmd/util/socket"
+	"github.com/skirkyn/dcw/cmd/util"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -20,10 +19,11 @@ type Config struct {
 	Port                                  int
 	MaxSendResponseRetries                int
 	TimeToSleepBetweenSendResponseRetries time.Duration
+	StopOnReceive                         bool // that's bs
 }
 
 type Server struct {
-	handler         handler.Handler
+	handler         common.Function[[]byte, []byte]
 	stopped         *atomic.Bool
 	pendingRequests *sync.WaitGroup
 	serverConfig    Config
@@ -31,7 +31,7 @@ type Server struct {
 	frontend        *zmq4.Socket
 }
 
-func NewServer(handler handler.Handler,
+func NewServer(handler common.Function[[]byte, []byte],
 	serverConfig Config) (server.Server, error) {
 	backend, err := zmq4.NewSocket(zmq4.DEALER)
 	if err != nil {
@@ -46,29 +46,31 @@ func NewServer(handler handler.Handler,
 	return &Server{handler, &atomic.Bool{}, &sync.WaitGroup{}, serverConfig, backend, frontend}, nil
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start() (*sync.WaitGroup, error) {
 
 	err := s.frontend.Bind(fmt.Sprintf("tcp://*:%d", s.serverConfig.Port))
 	if err != nil {
 		log.Printf("can't bind to the socket %s", err.Error())
-		return err
+		return nil, err
 	}
 
 	if err != nil {
 		log.Printf("can't create socket %s", err.Error())
-		return err
+		return nil, err
 	}
 	err = s.backend.Bind(internalAddress)
 
 	if err != nil {
 		log.Printf("can't bind to the socket %s", err.Error())
-		return err
+		return nil, err
 	}
+	wg := sync.WaitGroup{}
+	wg.Add(s.serverConfig.Workers)
 	for i := 0; i < s.serverConfig.Workers; i++ {
-		go s.startWorker(internalAddress)
+		go s.startWorker(internalAddress, &wg)
 	}
 
-	return zmq4.Proxy(s.frontend, s.backend, nil)
+	return &wg, zmq4.Proxy(s.frontend, s.backend, nil)
 }
 
 func (s *Server) Stop() error {
@@ -87,14 +89,22 @@ func (s *Server) Stop() error {
 	return err
 }
 
-func (s *Server) startWorker(internalAddress string) {
+func (s *Server) stopInternal() {
+	err := s.Stop()
+	if err != nil {
+		log.Print(err.Error())
+	}
+}
+
+func (s *Server) startWorker(internalAddress string, wg *sync.WaitGroup) {
 	worker, err := zmq4.NewSocket(zmq4.DEALER)
 	lock := sync.Mutex{}
 	if err != nil {
 		log.Printf("can't create socket %s", err.Error())
 		return
 	}
-	defer socket.CloseSocket(worker)
+	defer util.CloseSocket(worker)
+	defer wg.Done()
 	err = worker.Connect(internalAddress)
 	if err != nil {
 		log.Printf("can't connect worker socket %s", err.Error())
@@ -126,8 +136,14 @@ func (s *Server) maybeProcessMessage(worker *zmq4.Socket, lock *sync.Mutex) {
 
 	client, content := s.parseMessage(request)
 
-	res := s.handler.Handle(content)
-
+	res, err := s.handler.Apply(content)
+	if err != nil {
+		log.Printf("error handling request %s", err.Error())
+	}
+	// todo fix this gross workaround
+	if s.serverConfig.StopOnReceive {
+		go s.stopInternal()
+	}
 	s.respond(worker, lock, client, res)
 }
 
@@ -138,7 +154,7 @@ func (s *Server) parseMessage(msg []string) (string, []byte) {
 		index++
 
 	}
-	return string(bytz.SliceToByteSlice(msg[:2])), bytz.SliceToByteSlice(msg[2:])
+	return string(util.SliceToByteSlice(msg[:2])), util.SliceToByteSlice(msg[2:])
 }
 
 func (s *Server) respond(router *zmq4.Socket, lock *sync.Mutex, client string, resp []byte) {

@@ -1,4 +1,4 @@
-package socket
+package util
 
 import (
 	"github.com/pebbe/zmq4"

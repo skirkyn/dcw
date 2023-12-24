@@ -115,7 +115,7 @@ func StringFromVocabularyGeneratorFromState(state State) (*Supplier, error) {
 	return &Supplier{&state, &sync.RWMutex{}}, nil
 }
 
-func (g *Supplier) Supply(batchSize int) ([]string, error) {
+func (g *Supplier) Apply(batchSize int) ([]string, error) {
 
 	currentPositions, err := g.recalculatePositions(batchSize)
 

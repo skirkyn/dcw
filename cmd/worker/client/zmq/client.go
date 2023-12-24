@@ -3,7 +3,7 @@ package zmq
 import (
 	"fmt"
 	"github.com/pebbe/zmq4"
-	"github.com/skirkyn/dcw/cmd/util/bytz"
+	"github.com/skirkyn/dcw/cmd/util"
 	"github.com/skirkyn/dcw/cmd/worker/client"
 	"log"
 	"sync"
@@ -62,7 +62,7 @@ func (c *Client) Call(req []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return bytz.SliceToByteSlice(msg), err
+	return util.SliceToByteSlice(msg), err
 }
 
 func (c *Client) Close() error {
