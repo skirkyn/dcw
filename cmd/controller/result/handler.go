@@ -1,33 +1,25 @@
 package result
 
 import (
-	"errors"
 	"github.com/skirkyn/dcw/cmd/common"
 	"log"
 )
 
 type Handler[Result any] struct {
-	requestTransformer common.RequestTransformer[string]
+	responseTransformer common.ResponseTransformer[string]
 }
 
-func NewHandler[Result any](requestTransformer common.RequestTransformer[string]) common.Function[[]byte, []byte] {
-	return &Handler[Result]{requestTransformer}
+func NewHandler[Result any](responseTransformer common.ResponseTransformer[string]) common.Function[common.Request[any], []byte] {
+	return &Handler[Result]{responseTransformer}
 }
 
-func (h *Handler[Result]) Apply(in []byte) ([]byte, error) {
-	if in == nil {
-		log.Println("can't handle result nil")
-		return nil, errors.New("nil result")
-	}
-	req, err := h.requestTransformer.BytesToRequest(in)
+func (h *Handler[Result]) Apply(req common.Request[any]) ([]byte, error) {
 
-	if err != nil {
-		log.Printf("error transforming request %s", string(in))
-		return nil, errors.New("nil result")
-	}
 	log.Println("+++++++ !!!!!!!! found result !!!!!! +++++++++")
 
 	log.Println(req.Body)
 
-	return []byte{}, err
+	// maybe email the result
+
+	return h.responseTransformer.ResponseToBytes(common.Response[string]{Done: true, Body: ""})
 }

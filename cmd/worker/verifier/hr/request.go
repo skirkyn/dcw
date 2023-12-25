@@ -9,12 +9,12 @@ import (
 
 type RequestSupplier[In any] struct {
 	method          string
-	headersSupplier common.Function[In, map[string]string]
+	headersSupplier common.Function[any, map[string]string]
 	url             string
 	bodySupplier    common.Function[In, []byte]
 }
 
-func NewRequestSupplier[In any](method string, headersSupplier common.Function[In, map[string]string], url string, bodySupplier common.Function[In, []byte]) common.Function[In, *http.Request] {
+func NewRequestSupplier[In any](method string, headersSupplier common.Function[any, map[string]string], url string, bodySupplier common.Function[In, []byte]) common.Function[In, *http.Request] {
 	return &RequestSupplier[In]{
 		method, headersSupplier, url, bodySupplier,
 	}

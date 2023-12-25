@@ -7,13 +7,13 @@ import (
 )
 
 type Verifier[In any] struct {
-	client           *http.Client
-	requestSupplier  common.Function[In, *http.Request]
-	successPredicate common.Predicate[*http.Response]
+	client          *http.Client
+	requestSupplier common.Function[In, *http.Request]
+	onResponse      common.Function[*http.Response, bool]
 }
 
-func NewVerifier[In any](client *http.Client, requestSupplier common.Function[In, *http.Request], successPredicate common.Predicate[*http.Response]) common.Predicate[In] {
-	return &Verifier[In]{client, requestSupplier, successPredicate}
+func NewVerifier[In any](client *http.Client, requestSupplier common.Function[In, *http.Request], onResponse common.Function[*http.Response, bool]) common.Predicate[In] {
+	return &Verifier[In]{client, requestSupplier, onResponse}
 }
 
 func (v *Verifier[In]) Test(in In) bool {
@@ -29,5 +29,12 @@ func (v *Verifier[In]) Test(in In) bool {
 		return false
 	}
 
-	return v.successPredicate.Test(resp)
+	success, err := v.onResponse.Apply(resp)
+	if err != nil {
+		log.Printf("error verifying http request %s", err.Error())
+
+	}
+
+	return success
+
 }

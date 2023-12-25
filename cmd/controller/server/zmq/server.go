@@ -19,7 +19,6 @@ type Config struct {
 	Port                                  int
 	MaxSendResponseRetries                int
 	TimeToSleepBetweenSendResponseRetries time.Duration
-	StopOnReceive                         bool // that's bs
 }
 
 type Server struct {
@@ -89,13 +88,6 @@ func (s *Server) Stop() error {
 	return err
 }
 
-func (s *Server) stopInternal() {
-	err := s.Stop()
-	if err != nil {
-		log.Print(err.Error())
-	}
-}
-
 func (s *Server) startWorker(internalAddress string, wg *sync.WaitGroup) {
 	worker, err := zmq4.NewSocket(zmq4.DEALER)
 	lock := sync.Mutex{}
@@ -139,10 +131,6 @@ func (s *Server) maybeProcessMessage(worker *zmq4.Socket, lock *sync.Mutex) {
 	res, err := s.handler.Apply(content)
 	if err != nil {
 		log.Printf("error handling request %s", err.Error())
-	}
-	// todo fix this gross workaround
-	if s.serverConfig.StopOnReceive {
-		go s.stopInternal()
 	}
 	s.respond(worker, lock, client, res)
 }

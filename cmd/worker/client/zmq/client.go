@@ -49,13 +49,12 @@ func NewZMQClient(config Config) (client.Client, error) {
 func (c *Client) Call(req []byte) ([]byte, error) {
 	c.connLock.Lock()
 	_, err := c.socket.SendMessage(req)
-	c.connLock.Unlock()
 
 	if err != nil {
+		c.connLock.Unlock()
 		return nil, err
 	}
 
-	c.connLock.Lock()
 	msg, err := c.socket.RecvMessage(0)
 	c.connLock.Unlock()
 

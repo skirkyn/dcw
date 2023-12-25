@@ -1,7 +1,6 @@
 package hr
 
 import (
-	"errors"
 	"github.com/skirkyn/dcw/cmd/common"
 )
 
@@ -14,8 +13,5 @@ func NewSimpleHeadersSupplier[In any](defaultHeaders map[string]string) common.F
 }
 
 func (sf *SimpleHeadersSupplier[In]) Apply(in In) (map[string]string, error) {
-	if in == nil {
-		return nil, errors.New("input can't be nil")
-	}
 	return sf.defaultHeaders, nil
 }

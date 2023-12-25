@@ -7,24 +7,17 @@ import (
 
 type StringGeneratorHandler struct {
 	workSupplier        common.Function[int, []string]
-	requestTransformer  common.RequestTransformer[int]
 	responseTransformer common.ResponseTransformer[[]string]
 }
 
 func NewGeneratorHandler(supplier common.Function[int, []string],
-	requestTransformer common.RequestTransformer[int],
-	responseTransformer common.ResponseTransformer[[]string]) common.Function[[]byte, []byte] {
-	return &StringGeneratorHandler{supplier, requestTransformer, responseTransformer}
+	responseTransformer common.ResponseTransformer[[]string]) common.Function[common.Request[any], []byte] {
+	return &StringGeneratorHandler{supplier, responseTransformer}
 }
 
-func (gh *StringGeneratorHandler) Apply(reqRaw []byte) ([]byte, error) {
-	req, err := gh.requestTransformer.BytesToRequest(reqRaw)
+func (gh *StringGeneratorHandler) Apply(req common.Request[any]) ([]byte, error) {
 
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := gh.workSupplier.Apply(req.Body)
+	result, err := gh.workSupplier.Apply(req.Body.(int))
 	resp := common.Response[[]string]{Done: !errors.Is(err, PotentialResultsExhaustedError), Body: result}
 	bytes, err := gh.responseTransformer.ResponseToBytes(resp)
 	if err != nil {

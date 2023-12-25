@@ -74,10 +74,11 @@ func (r *DefaultRunner[Result]) doWork(req []byte) {
 	if res == nil {
 		return
 	}
+
 	// todo add retries
 	err = r.resultHandler.Consume(*res)
 	if err != nil {
-		log.Printf("error handling result %s %s", err.Error())
+		log.Printf("error handling result %s", err.Error())
 	} else {
 		r.Stop()
 	}
