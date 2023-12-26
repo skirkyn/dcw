@@ -1,6 +1,6 @@
-package controller
+package main
 
-func main_() {
+func main() {
 
 	Run()
 }

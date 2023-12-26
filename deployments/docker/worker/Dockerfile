@@ -1,18 +1,20 @@
-FROM golang:1.21.5
+FROM golang:1.21.0-alpine
+
+WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download
-COPY cmd ./
-COPY main.go ./
-COPY configs ./
+COPY /cmd/ ./cmd
+COPY configs/ ./configs
+RUN mv ./configs/* ./
+ENV COMMON_CONFIG_LOC=common.json
+ENV CONTROLLER_CONFIG_LOC=controller.json
+ENV WORKER_CONFIG_LOC=worker.json
 
-ENV COMMON_CONFIG_LOC=./common.json
-ENV CONTROLLER_CONFIG_LOC=./controller.json
-ENV WORKER_CONFIG_LOC=./worker.json
+RUN apk update
+RUN apk add libzmq zeromq-dev zeromq gcc build-base pkgconfig
+RUN CGO_ENABLED=1  GOOS=linux go build -o worker ./cmd/worker
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /worker
-RUN cp configs/* worker/
-
+RUN chmod +x ./worker
 EXPOSE 50000
 
-CMD ["/worker", "worker"]
+CMD ["./worker"]

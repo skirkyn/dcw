@@ -1,4 +1,4 @@
-package controller
+package main
 
 import (
 	"github.com/skirkyn/dcw/cmd/common"

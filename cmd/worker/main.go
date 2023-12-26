@@ -1,5 +1,5 @@
 package worker
 
-func main_() {
+func main() {
 	Run()
 }
