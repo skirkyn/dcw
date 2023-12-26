@@ -1,4 +1,4 @@
-package worker
+package main
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/skirkyn/dcw/cmd/worker/client/zmq"
 	"github.com/skirkyn/dcw/cmd/worker/result"
 	"github.com/skirkyn/dcw/cmd/worker/runner"
-	"github.com/skirkyn/dcw/cmd/worker/sfv"
+	"github.com/skirkyn/dcw/cmd/worker/sfa"
 	"github.com/skirkyn/dcw/cmd/worker/verifier/hr"
 	"github.com/skirkyn/dcw/cmd/worker/verifier/hr/cb"
 	"github.com/skirkyn/dcw/cmd/worker/verifier/hr/cb/vi"
@@ -68,8 +68,8 @@ func getCbRunner(commonConfig config.CommonConfig, workerConfig config.WorkerCon
 
 	successPredicate := cb.NewResponseHandler(http.DefaultClient, proofTokenRequestSupplier)
 	verifier := hr.NewVerifier[string](http.DefaultClient, verifyRequestSupplier, successPredicate)
-	worker := sfv.NewWorker(sem, ctx, workRespTrans, verifier)
-	workReqSupplier := sfv.NewSupplier(workerConfig.BatchSize, workReqTrans, sem, ctx)
+	worker := sfa.NewWorker(sem, ctx, workRespTrans, verifier)
+	workReqSupplier := sfa.NewSupplier(workerConfig.BatchSize, workReqTrans, sem, ctx)
 	resHandler := result.NewHandler[string](client, resultRequestTrans)
 
 	return runner.NewDefaultRunner[string](runnerConfig, client, worker, workReqSupplier, resHandler)

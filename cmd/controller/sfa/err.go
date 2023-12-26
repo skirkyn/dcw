@@ -1,10 +1,10 @@
-package sfv
+package sfa
 
 var (
 	CustomNotSupportedError        = newCustomNotSupported()
 	IncorrectFormatterError        = newIncorrectFormatter()
 	IncorrectResultLengthError     = newIncorrectResultLength()
-	IncorrectVocabularyLengthError = newIncorrectVocabularyLength()
+	IncorrectAlphabetLengthError   = newIncorrectAlphabetLength()
 	PotentialResultsExhaustedError = newPotentialResultsExhausted()
 	InvalidStateFileError          = newInvalidStateFile()
 )
@@ -45,16 +45,16 @@ func newIncorrectResultLength() error {
 	return IncorrectResultLength{"incorrect result length"}
 }
 
-type IncorrectVocabularyLength struct {
+type IncorrectAlphabetLength struct {
 	s string
 }
 
-func (e IncorrectVocabularyLength) Error() string {
+func (e IncorrectAlphabetLength) Error() string {
 	return e.s
 }
 
-func newIncorrectVocabularyLength() error {
-	return IncorrectVocabularyLength{"incorrect result length"}
+func newIncorrectAlphabetLength() error {
+	return IncorrectAlphabetLength{"incorrect result length"}
 }
 
 type PotentialResultsExhausted struct {

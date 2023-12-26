@@ -1,4 +1,4 @@
-package sfv
+package sfa
 
 import (
 	"encoding/json"
@@ -8,10 +8,10 @@ import (
 	"sync"
 )
 
-type Vocabulary int
+type Alphabet int
 
 const (
-	Decimals Vocabulary = iota
+	Decimals Alphabet = iota
 	Hex
 	Uuid
 	Base36
@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	vocabularyCharacters = map[Vocabulary][]rune{
+	alphabetCharacters = map[Alphabet][]rune{
 		Decimals: []rune("0123456789"),
 		Hex:      []rune("0123456789abcdef"),
 		Base36:   []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
@@ -43,7 +43,7 @@ var (
 )
 
 type Config struct {
-	Vocabulary   []rune    `json:"vocabulary"`
+	Alphabet     []rune    `json:"alphabet"`
 	ResultLength int       `json:"resultLength"`
 	Formatter    Formatter `json:"formatter"`
 }
@@ -62,32 +62,32 @@ type Supplier struct {
 // todo actually add state persistance
 const StateFile = "/home/sfa_gen.json"
 
-func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (*Supplier, error) {
+func ForCustom(resultLength int, alphabet []rune, formatter Formatter) (*Supplier, error) {
 
 	if resultLength <= 0 {
 		return nil, IncorrectResultLengthError
 	}
-	if vocabulary == nil || len(vocabulary) == 0 {
-		return nil, IncorrectVocabularyLengthError
+	if alphabet == nil || len(alphabet) == 0 {
+		return nil, IncorrectAlphabetLengthError
 	}
 	if int(formatter) >= len(formattersFunctions) {
 		return nil, IncorrectFormatterError
 	}
-	stateVocabulary := append([]rune(nil), vocabulary...)
-	sort.Slice(stateVocabulary, func(i, j int) bool {
-		return stateVocabulary[i] < stateVocabulary[j]
+	stateAlphabet := append([]rune(nil), alphabet...)
+	sort.Slice(stateAlphabet, func(i, j int) bool {
+		return stateAlphabet[i] < stateAlphabet[j]
 	})
-	state := State{Config: Config{stateVocabulary, resultLength, formatter}}
-	return StringFromVocabularyGeneratorFromState(state)
+	state := State{Config: Config{stateAlphabet, resultLength, formatter}}
+	return StringFromAlphabetGeneratorFromState(state)
 
 }
 
-func ForStandard(vocabulary Vocabulary, resultLength int, formatter Formatter) (*Supplier, error) {
+func ForStandard(alphabet Alphabet, resultLength int, formatter Formatter) (*Supplier, error) {
 
-	if vocabulary == Custom {
+	if alphabet == Custom {
 		return nil, CustomNotSupportedError
 	}
-	return ForCustom(resultLength, vocabularyCharacters[vocabulary], formatter)
+	return ForCustom(resultLength, alphabetCharacters[alphabet], formatter)
 }
 
 func Resume(stateFileLocation string) (*Supplier, error) {
@@ -96,10 +96,10 @@ func Resume(stateFileLocation string) (*Supplier, error) {
 	if err != nil {
 		return nil, err
 	}
-	return StringFromVocabularyGeneratorFromState(res)
+	return StringFromAlphabetGeneratorFromState(res)
 }
 
-func StringFromVocabularyGeneratorFromState(state State) (*Supplier, error) {
+func StringFromAlphabetGeneratorFromState(state State) (*Supplier, error) {
 
 	return &Supplier{state, &sync.RWMutex{}}, nil
 }
@@ -131,9 +131,9 @@ func (g *Supplier) generateBatch(res *[]string, current []rune, batchSize int, d
 	if len(*res) == batchSize {
 		return nil
 	}
-	vocabularyLength := len(g.state.Config.Vocabulary)
+	alphabetLength := len(g.state.Config.Alphabet)
 
-	if depth == vocabularyLength {
+	if depth == alphabetLength {
 		strRes, err := formattersFunctions[g.state.Config.Formatter](current)
 		if err != nil {
 			return err
@@ -141,8 +141,8 @@ func (g *Supplier) generateBatch(res *[]string, current []rune, batchSize int, d
 		*res = append(*res, strRes)
 	}
 
-	for i := currentIndices[depth]; i < vocabularyLength; i++ {
-		current[depth] = g.state.Config.Vocabulary[i]
+	for i := currentIndices[depth]; i < alphabetLength; i++ {
+		current[depth] = g.state.Config.Alphabet[i]
 		currentIndices[depth] = i
 		err := g.generateBatch(res, current, batchSize, depth+1, currentIndices)
 		if err != nil {
@@ -155,7 +155,7 @@ func (g *Supplier) generateBatch(res *[]string, current []rune, batchSize int, d
 
 func (g *Supplier) updatePositions(positions *[]int, log int, sum int, index int) int {
 	positionsDeref := *positions
-	vocabLength := len(g.state.Config.Vocabulary)
+	vocabLength := len(g.state.Config.Alphabet)
 
 	if index == len(positionsDeref) {
 		return 0
@@ -189,8 +189,8 @@ func (g *Supplier) recalculatePositions(batchSize int) ([]int, error) {
 	if g.state.Done {
 		return nil, PotentialResultsExhaustedError
 	}
-	vocabularyLength := len(g.state.Config.Vocabulary)
-	log := int(math.Log10(float64(batchSize)) / math.Log10(float64(vocabularyLength)))
+	alphabetLength := len(g.state.Config.Alphabet)
+	log := int(math.Log10(float64(batchSize)) / math.Log10(float64(alphabetLength)))
 
 	oldPositions := append(make([]int, g.state.Config.ResultLength), g.state.CurrentPositions...)
 	newPositions := append(make([]int, g.state.Config.ResultLength), g.state.CurrentPositions...)

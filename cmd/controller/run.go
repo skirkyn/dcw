@@ -7,7 +7,7 @@ import (
 	"github.com/skirkyn/dcw/cmd/controller/result"
 	"github.com/skirkyn/dcw/cmd/controller/server"
 	"github.com/skirkyn/dcw/cmd/controller/server/zmq"
-	"github.com/skirkyn/dcw/cmd/controller/sfv"
+	"github.com/skirkyn/dcw/cmd/controller/sfa"
 	"log"
 	"os"
 	"os/signal"
@@ -34,12 +34,12 @@ func Run() {
 		TimeToSleepBetweenSendResponseRetries: time.Duration(controllerConfig.MaxSendRetriesTtsSec),
 	}
 	// todo this also has to be extracted into a factory
-	workSupplier, err := sfv.ForStandard(sfv.Decimals, controllerConfig.ResLength, sfv.Simple)
+	workSupplier, err := sfa.ForStandard(sfa.Decimals, controllerConfig.ResLength, sfa.Simple)
 	if err != nil {
 		log.Fatal("can't create supplier for the server", err)
 	}
 	workResTrans := dto.NewResponseTransformer[[]string]()
-	workHandler := sfv.NewGeneratorHandler(workSupplier, workResTrans)
+	workHandler := sfa.NewGeneratorHandler(workSupplier, workResTrans)
 	resultRespTrans := dto.NewResponseTransformer[string]()
 
 	resultHandler := result.NewHandler[string](resultRespTrans)
