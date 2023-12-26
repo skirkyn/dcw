@@ -2,7 +2,7 @@ package cb
 
 import (
 	"encoding/json"
-	"github.com/skirkyn/dcw/cmd/common"
+	"github.com/unknownfeature/dcw/cmd/common"
 	"io"
 	"log"
 	"net/http"

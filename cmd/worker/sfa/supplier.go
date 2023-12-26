@@ -2,8 +2,8 @@ package sfa
 
 import (
 	"context"
-	"github.com/skirkyn/dcw/cmd/common"
-	"github.com/skirkyn/dcw/cmd/common/dto"
+	"github.com/unknownfeature/dcw/cmd/common"
+	"github.com/unknownfeature/dcw/cmd/common/dto"
 	"golang.org/x/sync/semaphore"
 )
 

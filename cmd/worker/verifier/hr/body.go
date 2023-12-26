@@ -2,7 +2,7 @@ package hr
 
 import (
 	"fmt"
-	"github.com/skirkyn/dcw/cmd/common"
+	"github.com/unknownfeature/dcw/cmd/common"
 )
 
 type FormattingBodySupplier[In any] struct {

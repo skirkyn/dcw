@@ -3,8 +3,8 @@ package zmq
 import (
 	"fmt"
 	"github.com/pebbe/zmq4"
-	"github.com/skirkyn/dcw/cmd/util"
-	"github.com/skirkyn/dcw/cmd/worker/client"
+	"github.com/unknownfeature/dcw/cmd/util"
+	"github.com/unknownfeature/dcw/cmd/worker/client"
 	"log"
 	"sync"
 	"time"

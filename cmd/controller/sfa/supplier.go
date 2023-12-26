@@ -2,7 +2,7 @@ package sfa
 
 import (
 	"encoding/json"
-	"github.com/skirkyn/dcw/cmd/util"
+	"github.com/unknownfeature/dcw/cmd/util"
 	"math"
 	"sort"
 	"sync"

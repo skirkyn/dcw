@@ -1,7 +1,7 @@
 package hr
 
 import (
-	"github.com/skirkyn/dcw/cmd/test"
+	"github.com/unknownfeature/dcw/cmd/test"
 	"testing"
 )
 

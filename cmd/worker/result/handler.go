@@ -1,9 +1,9 @@
 package result
 
 import (
-	"github.com/skirkyn/dcw/cmd/common"
-	"github.com/skirkyn/dcw/cmd/common/dto"
-	"github.com/skirkyn/dcw/cmd/worker/client"
+	"github.com/unknownfeature/dcw/cmd/common"
+	"github.com/unknownfeature/dcw/cmd/common/dto"
+	"github.com/unknownfeature/dcw/cmd/worker/client"
 )
 
 type Handler[In any] struct {

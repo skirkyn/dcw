@@ -2,8 +2,8 @@ package sfa
 
 import (
 	"errors"
-	"github.com/skirkyn/dcw/cmd/common"
-	"github.com/skirkyn/dcw/cmd/common/dto"
+	"github.com/unknownfeature/dcw/cmd/common"
+	"github.com/unknownfeature/dcw/cmd/common/dto"
 )
 
 type StringGeneratorHandler struct {

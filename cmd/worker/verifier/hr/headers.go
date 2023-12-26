@@ -1,7 +1,7 @@
 package hr
 
 import (
-	"github.com/skirkyn/dcw/cmd/common"
+	"github.com/unknownfeature/dcw/cmd/common"
 )
 
 type SimpleHeadersSupplier struct {

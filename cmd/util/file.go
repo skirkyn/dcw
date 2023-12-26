@@ -3,7 +3,7 @@ package util
 import (
 	"encoding/json"
 	"errors"
-	"github.com/skirkyn/dcw/cmd/common"
+	"github.com/unknownfeature/dcw/cmd/common"
 	"os"
 )
 

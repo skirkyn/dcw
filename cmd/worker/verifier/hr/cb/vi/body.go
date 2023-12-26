@@ -1,8 +1,8 @@
 package vi
 
 import (
-	"github.com/skirkyn/dcw/cmd/common"
-	"github.com/skirkyn/dcw/cmd/worker/verifier/hr"
+	"github.com/unknownfeature/dcw/cmd/common"
+	"github.com/unknownfeature/dcw/cmd/worker/verifier/hr"
 )
 
 type BodySupplier struct {

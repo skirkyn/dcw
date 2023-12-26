@@ -1,4 +1,4 @@
-module github.com/skirkyn/dcw
+module github.com/unknownfeature/dcw
 
 go 1.21.5
 

@@ -1,6 +1,6 @@
 package config
 
-import "github.com/skirkyn/dcw/cmd/util"
+import "github.com/unknownfeature/dcw/cmd/util"
 
 type WorkerConfig[T HttpRequestVerifier[C], C CbCustomConfig] struct {
 	ConnAttempts           int `json:"connAttempts"`

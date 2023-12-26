@@ -2,7 +2,7 @@ package vi
 
 import (
 	"encoding/json"
-	"github.com/skirkyn/dcw/cmd/test"
+	"github.com/unknownfeature/dcw/cmd/test"
 	"testing"
 )
 

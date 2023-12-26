@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/skirkyn/dcw/cmd/util"
+	"github.com/unknownfeature/dcw/cmd/util"
 )
 
 type Type int
