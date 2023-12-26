@@ -12,7 +12,7 @@ ENV WORKER_CONFIG_LOC=worker.json
 
 RUN apk update
 RUN apk add libzmq zeromq-dev zeromq gcc build-base pkgconfig
-RUN CGO_ENABLED=1  GOOS=linux go build -o worker ./cmd/controller
+RUN CGO_ENABLED=1  GOOS=linux go build -o controller ./cmd/controller
 
 RUN chmod +x ./controller
 EXPOSE 50000
