@@ -1,4 +1,4 @@
-package pt
+package vi
 
 import (
 	"encoding/json"
@@ -7,14 +7,17 @@ import (
 )
 
 func TestApply(t *testing.T) {
-
-	subject := NewBodySupplier()
-
-	theMap := map[string]string{"proof_token": "pt-v1-84f0105a-8bf5-4800-8ae0-a0b574cf7bcb"}
 	expected := `{
-          "recaptcha_token": "",
-          "proof_token": "pt-v1-84f0105a-8bf5-4800-8ae0-a0b574cf7bcb"
+          "one": "",
+          "proof_token": "rrrrb"
         }`
+	template := `{
+          "one": "",
+          "proof_token": "%s"
+        }`
+	subject := NewBodySupplier(template)
+
+	theMap := map[string]string{"proof_token": "rrrrb"}
 
 	expectedMap := make(map[string]string)
 	err := json.Unmarshal([]byte(expected), &expectedMap)

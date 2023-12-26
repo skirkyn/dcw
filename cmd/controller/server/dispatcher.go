@@ -3,14 +3,15 @@ package server
 import (
 	"errors"
 	"github.com/skirkyn/dcw/cmd/common"
+	"github.com/skirkyn/dcw/cmd/common/dto"
 )
 
 type Dispatcher struct {
-	handlers           map[common.Type]common.Function[common.Request[any], []byte]
-	requestTransformer common.RequestTransformer[any]
+	handlers           map[dto.Type]common.Function[dto.Request[any], []byte]
+	requestTransformer dto.RequestTransformer[any]
 }
 
-func NewDispatcher(handlers map[common.Type]common.Function[common.Request[any], []byte], requestTransformer common.RequestTransformer[any]) common.Function[[]byte, []byte] {
+func NewDispatcher(handlers map[dto.Type]common.Function[dto.Request[any], []byte], requestTransformer dto.RequestTransformer[any]) common.Function[[]byte, []byte] {
 	return &Dispatcher{handlers, requestTransformer}
 }
 func (d *Dispatcher) Apply(in []byte) ([]byte, error) {

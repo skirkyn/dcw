@@ -3,17 +3,18 @@ package sfv
 import (
 	"context"
 	"github.com/skirkyn/dcw/cmd/common"
+	"github.com/skirkyn/dcw/cmd/common/dto"
 	"golang.org/x/sync/semaphore"
 )
 
 type WorkSupplier struct {
 	batchSize          int
-	requestTransformer common.RequestTransformer[int]
+	requestTransformer dto.RequestTransformer[int]
 	semaphore          *semaphore.Weighted
 	context            context.Context
 }
 
-func NewSupplier(batchSize int, requestTransformer common.RequestTransformer[int], semaphore *semaphore.Weighted, context context.Context) common.Supplier[[]byte] {
+func NewSupplier(batchSize int, requestTransformer dto.RequestTransformer[int], semaphore *semaphore.Weighted, context context.Context) common.Supplier[[]byte] {
 
 	return &WorkSupplier{batchSize, requestTransformer, semaphore, context}
 }
@@ -24,7 +25,7 @@ func (s *WorkSupplier) Supply() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	req := common.Request[int]{Type: common.Work, Body: s.batchSize}
+	req := dto.Request[int]{Type: dto.Work, Body: s.batchSize}
 	bytes, err := s.requestTransformer.RequestToBytes(req)
 	if err != nil {
 		return nil, err

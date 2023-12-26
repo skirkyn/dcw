@@ -1,0 +1,6 @@
+{
+  "workers": 10,
+  "maxSendRetries": 10,
+  "maxSendRetriesTtsSec": 5,
+  "resLength": 8
+}

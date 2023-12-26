@@ -48,10 +48,6 @@ func NewServer(handler common.Function[[]byte, []byte],
 func (s *Server) Start() (*sync.WaitGroup, error) {
 
 	err := s.frontend.Bind(fmt.Sprintf("tcp://*:%d", s.serverConfig.Port))
-	if err != nil {
-		log.Printf("can't bind to the socket %s", err.Error())
-		return nil, err
-	}
 
 	if err != nil {
 		log.Printf("can't create socket %s", err.Error())

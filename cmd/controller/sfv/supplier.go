@@ -2,9 +2,8 @@ package sfv
 
 import (
 	"encoding/json"
-	"errors"
+	"github.com/skirkyn/dcw/cmd/util"
 	"math"
-	"os"
 	"sort"
 	"sync"
 )
@@ -56,10 +55,11 @@ type State struct {
 }
 
 type Supplier struct {
-	state     *State
+	state     State
 	stateLock *sync.RWMutex
 }
 
+// todo actually add state persistance
 const StateFile = "/home/sfa_gen.json"
 
 func ForCustom(resultLength int, vocabulary []rune, formatter Formatter) (*Supplier, error) {
@@ -91,28 +91,17 @@ func ForStandard(vocabulary Vocabulary, resultLength int, formatter Formatter) (
 }
 
 func Resume(stateFileLocation string) (*Supplier, error) {
-	if stateFileLocation == "" {
-		return nil, errors.New("state file can't be empty")
-	}
-	if _, err := os.Stat(stateFileLocation); errors.Is(err, os.ErrNotExist) {
+
+	res, err := util.ReadToStruct[State](stateFileLocation, func() State { return State{} })
+	if err != nil {
 		return nil, err
 	}
-	content, e := os.ReadFile(stateFileLocation)
-	if e != nil {
-		return nil, e
-	}
-	state := State{}
-	e = json.Unmarshal(content, &state)
-	if e != nil {
-		return nil, e
-	}
-
-	return StringFromVocabularyGeneratorFromState(state)
+	return StringFromVocabularyGeneratorFromState(res)
 }
 
 func StringFromVocabularyGeneratorFromState(state State) (*Supplier, error) {
 
-	return &Supplier{&state, &sync.RWMutex{}}, nil
+	return &Supplier{state, &sync.RWMutex{}}, nil
 }
 
 func (g *Supplier) Apply(batchSize int) ([]string, error) {

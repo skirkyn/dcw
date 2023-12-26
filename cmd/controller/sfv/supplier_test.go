@@ -183,3 +183,29 @@ func validatePositions(t *testing.T, err error, actual []int, expected []int) {
 		}
 	}
 }
+
+func TestSuppliesAllTheOptions(t *testing.T) {
+
+	subj, err := ForStandard(Decimals, 3, Simple)
+	if err != nil {
+		t.Fatalf("error is not expected %s", err.Error())
+	}
+
+	batch, err := subj.Apply(1000)
+	if err != nil {
+		t.Fatalf("error is not expected %s", err.Error())
+	}
+	if len(batch) != 1000 {
+		t.Fatalf("invalid batch size expected %d, actual %d", 1000, len(batch))
+	}
+	batch, err = subj.Apply(1000)
+
+	if batch != nil {
+		t.Fatalf("no options should be supplied")
+	}
+
+	if !errors.Is(err, PotentialResultsExhaustedError) {
+		t.Fatalf("incorrect error, expected PotentialResultsExhaustedError got %s", err.Error())
+	}
+
+}

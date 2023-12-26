@@ -1,4 +1,4 @@
-package cb
+package hr
 
 import (
 	"github.com/skirkyn/dcw/cmd/test"
@@ -7,7 +7,6 @@ import (
 
 func TestApply(t *testing.T) {
 
-	subject := NewHeadersSupplier("login session")
 	expected := map[string]string{
 
 		"sec-ch-ua":          "\"Google Chrome\";v=\"117\", \"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"117\"",
@@ -31,6 +30,7 @@ func TestApply(t *testing.T) {
 		"Content-Type":       "application/json",
 		"Cookie":             "login-session=login session",
 	}
+	subject := NewSimpleHeadersSupplier(expected)
 
 	res, err := subject.Apply("")
 	if err != nil {

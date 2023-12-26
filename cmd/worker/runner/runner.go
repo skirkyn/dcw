@@ -2,6 +2,7 @@ package runner
 
 import (
 	"github.com/skirkyn/dcw/cmd/common"
+	"github.com/skirkyn/dcw/cmd/common/dto"
 	"github.com/skirkyn/dcw/cmd/worker/client"
 	"log"
 	"sync"
@@ -19,13 +20,13 @@ type Config struct {
 type DefaultRunner[Result any] struct {
 	config          Config
 	client          client.Client
-	worker          common.Function[[]byte, *common.Request[Result]]
+	worker          common.Function[[]byte, *dto.Request[Result]]
 	requestSupplier common.Supplier[[]byte]
-	resultHandler   common.Consumer[common.Request[Result]]
+	resultHandler   common.Consumer[dto.Request[Result]]
 	stop            *atomic.Bool
 }
 
-func NewDefaultRunner[Result any](config Config, client client.Client, worker common.Function[[]byte, *common.Request[Result]], requestSupplier common.Supplier[[]byte], resultHandler common.Consumer[common.Request[Result]]) Runner {
+func NewDefaultRunner[Result any](config Config, client client.Client, worker common.Function[[]byte, *dto.Request[Result]], requestSupplier common.Supplier[[]byte], resultHandler common.Consumer[dto.Request[Result]]) Runner {
 
 	return &DefaultRunner[Result]{config, client, worker, requestSupplier, resultHandler, &atomic.Bool{}}
 }

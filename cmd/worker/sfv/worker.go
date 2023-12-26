@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/skirkyn/dcw/cmd/common"
+	"github.com/skirkyn/dcw/cmd/common/dto"
 	"golang.org/x/sync/semaphore"
 	"log"
 )
@@ -11,17 +12,17 @@ import (
 type Worker struct {
 	semaphore   *semaphore.Weighted
 	context     context.Context
-	transformer common.ResponseTransformer[[]string]
+	transformer dto.ResponseTransformer[[]string]
 	verifier    common.Predicate[string]
 }
 
 func NewWorker(semaphore *semaphore.Weighted,
 	context context.Context,
-	transformer common.ResponseTransformer[[]string],
-	verifier common.Predicate[string]) common.Function[[]byte, *common.Request[string]] {
+	transformer dto.ResponseTransformer[[]string],
+	verifier common.Predicate[string]) common.Function[[]byte, *dto.Request[string]] {
 	return &Worker{semaphore, context, transformer, verifier}
 }
-func (w *Worker) Apply(work []byte) (*common.Request[string], error) {
+func (w *Worker) Apply(work []byte) (*dto.Request[string], error) {
 	resp, err := w.transformer.BytesToResponse(work)
 	if err != nil {
 		log.Printf("can't process response %s because of %s", string(work), err.Error())
@@ -35,7 +36,7 @@ func (w *Worker) Apply(work []byte) (*common.Request[string], error) {
 	for i := 0; i < len(input); i++ {
 		current := input[i]
 		if w.verifier.Test(current) {
-			return &common.Request[string]{Type: common.Result, Body: current}, nil
+			return &dto.Request[string]{Type: dto.Result, Body: current}, nil
 		}
 	}
 
