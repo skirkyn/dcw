@@ -2,50 +2,33 @@ package sfa
 
 import (
 	"encoding/json"
+	"github.com/unknownfeature/dcw/cmd/common/config"
 	"github.com/unknownfeature/dcw/cmd/util"
 	"math"
 	"sort"
 	"sync"
 )
 
-type Alphabet int
-
-const (
-	Decimals Alphabet = iota
-	Hex
-	Uuid
-	Base36
-	Base64
-	Custom
-)
-
 var (
-	alphabetCharacters = map[Alphabet][]rune{
-		Decimals: []rune("0123456789"),
-		Hex:      []rune("0123456789abcdef"),
-		Base36:   []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
-		Base64:   []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"),
+	alphabetCharacters = map[config.Alphabet][]rune{
+		config.Decimals: []rune("0123456789"),
+		config.Hex:      []rune("0123456789abcdef"),
+		config.Base36:   []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
+		config.Base64:   []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"),
 	}
 )
 
-type Formatter int
-
-const (
-	Simple Formatter = iota
-	Uuid4
-)
-
 var (
-	formattersFunctions = map[Formatter]func([]rune) (string, error){
-		Simple: ToStringFromRunes,
-		Uuid4:  ToUuid4StringFromRunes,
+	formattersFunctions = map[config.Formatter]func([]rune) (string, error){
+		config.Simple: ToStringFromRunes,
+		config.Uuid4:  ToUuid4StringFromRunes,
 	}
 )
 
 type Config struct {
-	Alphabet     []rune    `json:"alphabet"`
-	ResultLength int       `json:"resultLength"`
-	Formatter    Formatter `json:"formatter"`
+	Alphabet     []rune           `json:"alphabet"`
+	ResultLength int              `json:"resultLength"`
+	Formatter    config.Formatter `json:"formatter"`
 }
 
 type State struct {
@@ -55,14 +38,14 @@ type State struct {
 }
 
 type Supplier struct {
-	state     State
+	state     *State
 	stateLock *sync.RWMutex
 }
 
 // todo actually add state persistance
 const StateFile = "/home/sfa_gen.json"
 
-func ForCustom(resultLength int, alphabet []rune, formatter Formatter) (*Supplier, error) {
+func ForCustom(resultLength int, alphabet []rune, formatter config.Formatter) (*Supplier, error) {
 
 	if resultLength <= 0 {
 		return nil, IncorrectResultLengthError
@@ -77,14 +60,14 @@ func ForCustom(resultLength int, alphabet []rune, formatter Formatter) (*Supplie
 	sort.Slice(stateAlphabet, func(i, j int) bool {
 		return stateAlphabet[i] < stateAlphabet[j]
 	})
-	state := State{Config: Config{stateAlphabet, resultLength, formatter}}
+	state := State{Config: Config{stateAlphabet, resultLength, formatter}, CurrentPositions: make([]int, resultLength)}
 	return StringFromAlphabetGeneratorFromState(state)
 
 }
 
-func ForStandard(alphabet Alphabet, resultLength int, formatter Formatter) (*Supplier, error) {
+func ForStandard(alphabet config.Alphabet, resultLength int, formatter config.Formatter) (*Supplier, error) {
 
-	if alphabet == Custom {
+	if alphabet == config.Custom {
 		return nil, CustomNotSupportedError
 	}
 	return ForCustom(resultLength, alphabetCharacters[alphabet], formatter)
@@ -101,20 +84,22 @@ func Resume(stateFileLocation string) (*Supplier, error) {
 
 func StringFromAlphabetGeneratorFromState(state State) (*Supplier, error) {
 
-	return &Supplier{state, &sync.RWMutex{}}, nil
+	return &Supplier{&state, &sync.RWMutex{}}, nil
 }
 
 func (g *Supplier) Apply(batchSize int) ([]string, error) {
 
-	currentPositions, err := g.recalculatePositions(batchSize)
+	//currentPositions, err := g.recalculatePositions(batchSize)
 
-	if err != nil {
-		return nil, err
-	}
-
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
 	template := make([]rune, g.state.Config.ResultLength)
-	chunk := make([]string, batchSize)
-	err = g.generateBatch(&chunk, template, batchSize, 0, currentPositions)
+	chunk := make([]string, 0)
+	g.stateLock.Lock()
+	_, _, err := g.generateBatch(&chunk, template, batchSize, 0, g.state.CurrentPositions)
+	g.stateLock.Unlock()
 
 	return chunk, err
 }
@@ -126,43 +111,58 @@ func (g *Supplier) CurrentState() ([]byte, error) {
 	return res, e
 }
 
-func (g *Supplier) generateBatch(res *[]string, current []rune, batchSize int, depth int, currentIndices []int) error {
+func (g *Supplier) generateBatch(res *[]string, current []rune, left int, depth int, currentIndices []int) (bool, int, error) {
 
-	if len(*res) == batchSize {
-		return nil
+	if left == 0 {
+		return false, left, nil
 	}
 	alphabetLength := len(g.state.Config.Alphabet)
 
-	if depth == alphabetLength {
+	if depth == len(current) {
 		strRes, err := formattersFunctions[g.state.Config.Formatter](current)
 		if err != nil {
-			return err
+			return false, left, err
 		}
 		*res = append(*res, strRes)
+
+		value := currentIndices[depth-1] + 1
+		currentIndices[depth-1] = value % (alphabetLength - 1)
+
+		return currentIndices[depth-1] < value && depth > 0, left - 1, nil
+	}
+	carryover := false
+	times := 0
+	for i := currentIndices[depth]; i < alphabetLength+currentIndices[depth] && left > 0; i++ {
+		current[depth] = g.state.Config.Alphabet[currentIndices[depth]]
+
+		newCarryover, newLeft, err := g.generateBatch(res, current, left, depth+1, currentIndices)
+		carryover = carryover || newCarryover
+		left = newLeft
+		times++
+		if err != nil {
+			return carryover, left, err
+		}
+
+	}
+	if carryover {
+		value := currentIndices[depth] + 1
+		currentIndices[depth] = value % (alphabetLength - 1)
+		return times == alphabetLength, left, nil
 	}
 
-	for i := currentIndices[depth]; i < alphabetLength; i++ {
-		current[depth] = g.state.Config.Alphabet[i]
-		currentIndices[depth] = i
-		err := g.generateBatch(res, current, batchSize, depth+1, currentIndices)
-		if err != nil {
-			return err
-		}
-	}
-	currentIndices[depth] = 0
-	return nil
+	return times == alphabetLength, left, nil
 }
 
-func (g *Supplier) updatePositions(positions *[]int, log int, sum int, index int) int {
-	positionsDeref := *positions
+func (g *Supplier) updatePositions(positions []int, log int, sum int, index int) int {
+
 	vocabLength := len(g.state.Config.Alphabet)
 
-	if index == len(positionsDeref) {
+	if index == len(positions) {
 		return 0
 	}
 
 	newLog := log
-	adjustIndex := len(positionsDeref)-index == log
+	adjustIndex := len(positions)-index == log
 	newSum := sum
 	newCarryover := 0
 	if adjustIndex {
@@ -173,12 +173,14 @@ func (g *Supplier) updatePositions(positions *[]int, log int, sum int, index int
 	}
 
 	carryover := g.updatePositions(positions, newLog, newSum, index+1)
-	newValue := positionsDeref[index] + carryover
-	if index == len(positionsDeref)-1 {
+	newValue := positions[index] + carryover
+	if index == len(positions)-1 {
 		newValue += newSum
 	}
-	positionsDeref[index] = int(math.Min(float64(newValue), float64(vocabLength)))
-
+	positions[index] = int(math.Min(float64(newValue), float64(vocabLength-1)))
+	if positions[index] < newValue && newCarryover == 0 {
+		newCarryover++
+	}
 	return newCarryover
 }
 
@@ -192,17 +194,18 @@ func (g *Supplier) recalculatePositions(batchSize int) ([]int, error) {
 	alphabetLength := len(g.state.Config.Alphabet)
 	log := int(math.Log10(float64(batchSize)) / math.Log10(float64(alphabetLength)))
 
-	oldPositions := append(make([]int, g.state.Config.ResultLength), g.state.CurrentPositions...)
-	newPositions := append(make([]int, g.state.Config.ResultLength), g.state.CurrentPositions...)
-
-	carryover := g.updatePositions(&newPositions, int(math.Min(float64(log), float64(g.state.Config.ResultLength))), batchSize, 0)
+	oldPositions := make([]int, len(g.state.CurrentPositions))
+	newPositions := make([]int, len(g.state.CurrentPositions))
+	copy(oldPositions, g.state.CurrentPositions)
+	copy(newPositions, g.state.CurrentPositions)
+	carryover := g.updatePositions(newPositions, int(math.Min(float64(log), float64(g.state.Config.ResultLength))), batchSize, 0)
 
 	if carryover > 0 {
 		g.state.Done = true
 	}
-
-	g.state.CurrentPositions = newPositions
-
+	for i := range g.state.CurrentPositions {
+		g.state.CurrentPositions[i] = newPositions[i]
+	}
 	g.stateLock.Unlock()
 
 	return oldPositions, nil

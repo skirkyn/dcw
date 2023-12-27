@@ -52,6 +52,7 @@ func (r *DefaultRunner[Result]) runWorker(wg *sync.WaitGroup) {
 		if r.stop.Load() {
 			return
 		}
+		log.Println("calling supply")
 		supply, err := r.requestSupplier.Supply()
 		if err != nil {
 			log.Printf("error calling supply, will exit %s", err.Error())
@@ -61,12 +62,13 @@ func (r *DefaultRunner[Result]) runWorker(wg *sync.WaitGroup) {
 }
 
 func (r *DefaultRunner[Result]) doWork(req []byte) {
-
+	log.Println("calling server")
 	resp, err := r.client.Call(req)
 	if err != nil {
-		log.Printf("error calling the server %s", err.Error())
+		//log.Printf("error calling the server %s", err.Error())
+		return
 	}
-
+	log.Println("applying result")
 	res, err := r.worker.Apply(resp)
 	if err != nil {
 		log.Printf("error processing work from server %s", err.Error())

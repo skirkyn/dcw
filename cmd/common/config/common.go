@@ -12,6 +12,11 @@ const (
 	Worker
 )
 
+const (
+	CbJob   = "CB_OTP_HTTP"
+	TestJob = "Test_HTTP"
+)
+
 var configNames = map[Type]string{
 	Common:     util.GetEnvString("COMMON_CONFIG_LOC", "common.json"),
 	Controller: util.GetEnvString("CONTROLLER_CONFIG_LOC", "controller.json"),
@@ -21,6 +26,7 @@ var configNames = map[Type]string{
 type CommonConfig struct {
 	ControllerHost string `json:"controllerHost"`
 	ControllerPort int    `json:"controllerPort"`
+	JobName        string `json:"jobName"`
 }
 
 func ReadCommonConfig() (CommonConfig, error) {

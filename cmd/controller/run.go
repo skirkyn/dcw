@@ -1,13 +1,9 @@
 package main
 
 import (
-	"github.com/unknownfeature/dcw/cmd/common"
 	"github.com/unknownfeature/dcw/cmd/common/config"
-	"github.com/unknownfeature/dcw/cmd/common/dto"
-	"github.com/unknownfeature/dcw/cmd/controller/result"
 	"github.com/unknownfeature/dcw/cmd/controller/server"
 	"github.com/unknownfeature/dcw/cmd/controller/server/zmq"
-	"github.com/unknownfeature/dcw/cmd/controller/sfa"
 	"log"
 	"os"
 	"os/signal"
@@ -34,18 +30,10 @@ func Run() {
 		TimeToSleepBetweenSendResponseRetries: time.Duration(controllerConfig.MaxSendRetriesTtsSec),
 	}
 	// todo this also has to be extracted into a factory
-	workSupplier, err := sfa.ForStandard(sfa.Decimals, controllerConfig.ResLength, sfa.Simple)
+	dispatcher, err := getDispatcher(commonConfig, controllerConfig)
 	if err != nil {
-		log.Fatal("can't create supplier for the server", err)
+		log.Fatal("can't create dispatcher", err)
 	}
-	workResTrans := dto.NewResponseTransformer[[]string]()
-	workHandler := sfa.NewGeneratorHandler(workSupplier, workResTrans)
-	resultRespTrans := dto.NewResponseTransformer[string]()
-
-	resultHandler := result.NewHandler[string](resultRespTrans)
-	handlers := map[dto.Type]common.Function[dto.Request[any], []byte]{dto.Work: workHandler, dto.Result: resultHandler}
-
-	dispatcher := server.NewDispatcher(handlers, dto.NewRequestTransformer[any]())
 	workServer, err := zmq.NewServer(dispatcher, workServerConfig)
 
 	if err != nil {

@@ -22,7 +22,9 @@ func NewRequestSupplier[In any](method string, headersSupplier common.Function[a
 
 func (r *RequestSupplier[In]) Apply(in In) (*http.Request, error) {
 	supply, err := r.bodySupplier.Apply(in)
+	log.Println(string(supply))
 	req, err := http.NewRequest(r.method, r.url, bytes.NewReader(supply))
+	log.Println(req)
 	if err != nil {
 		log.Printf("can't create http request %s", err.Error())
 		return nil, err

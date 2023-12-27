@@ -23,19 +23,26 @@ func NewWorker(semaphore *semaphore.Weighted,
 	return &Worker{semaphore, context, transformer, verifier}
 }
 func (w *Worker) Apply(work []byte) (*dto.Request[string], error) {
+	defer w.semaphore.Release(1)
 	resp, err := w.transformer.BytesToResponse(work)
 	if err != nil {
 		log.Printf("can't process response %s because of %s", string(work), err.Error())
 		return nil, err
 	}
-	if !resp.Done {
+	if resp.Done {
 		return nil, errors.New("done")
 	}
 	input := resp.Body
 
 	for i := 0; i < len(input); i++ {
 		current := input[i]
-		if w.verifier.Test(current) {
+		var res bool
+		res, err = w.verifier.Test(current)
+
+		if err != nil {
+			return nil, err
+		}
+		if res {
 			return &dto.Request[string]{Type: dto.Result, Body: current}, nil
 		}
 	}

@@ -14,11 +14,11 @@ type ResponseHandler struct {
 }
 
 func NewResponseHandler(client *http.Client,
-	requestSupplier common.Function[map[string]string, *http.Request]) common.Function[*http.Response, bool] {
+	requestSupplier common.Function[map[string]string, *http.Request]) common.Predicate[*http.Response] {
 	return &ResponseHandler{client, requestSupplier}
 }
 
-func (s *ResponseHandler) Apply(res *http.Response) (bool, error) {
+func (s *ResponseHandler) Test(res *http.Response) (bool, error) {
 	success := res != nil && res.Status == "200"
 	if success {
 		respBytes, err := io.ReadAll(res.Body)

@@ -1,6 +1,7 @@
 package zmq
 
 import (
+	"errors"
 	"fmt"
 	"github.com/pebbe/zmq4"
 	"github.com/unknownfeature/dcw/cmd/util"
@@ -49,19 +50,16 @@ func NewZMQClient(config Config) (client.Client, error) {
 func (c *Client) Call(req []byte) ([]byte, error) {
 	c.connLock.Lock()
 	_, err := c.socket.SendMessage(req)
-
-	if err != nil {
-		c.connLock.Unlock()
-		return nil, err
-	}
-
+	log.Println("sent")
 	msg, err := c.socket.RecvMessage(0)
+	log.Println("received")
 	c.connLock.Unlock()
-
-	if err != nil {
-		return nil, err
+	if len(msg) > 0 {
+		log.Println(msg)
+		return util.SliceToByteSlice(msg), err
 	}
-	return util.SliceToByteSlice(msg), err
+	return nil, errors.New("invalid response")
+
 }
 
 func (c *Client) Close() error {

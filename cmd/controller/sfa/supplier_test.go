@@ -3,6 +3,7 @@ package sfa
 import (
 	"errors"
 	"fmt"
+	"github.com/unknownfeature/dcw/cmd/common/config"
 	"testing"
 )
 
@@ -15,14 +16,14 @@ var expectedCustomNotSupported = CustomNotSupportedError
 
 func TestForCustomSuccess(t *testing.T) {
 
-	gen, err := ForCustom(8, alphabetCharacters[Decimals], Simple)
+	gen, err := ForCustom(8, alphabetCharacters[config.Decimals], config.Simple)
 
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	state := gen.state
-	config := state.Config
+	conf := state.Config
 
 	for i := 0; i < len(state.CurrentPositions); i++ {
 		if state.CurrentPositions[i] != 0 {
@@ -31,24 +32,24 @@ func TestForCustomSuccess(t *testing.T) {
 		}
 	}
 
-	if config.ResultLength != 8 {
-		t.Errorf("expected result length 8, got %d", config.ResultLength)
+	if conf.ResultLength != 8 {
+		t.Errorf("expected result length 8, got %d", conf.ResultLength)
 	}
 
-	for i := 0; i < max(len(config.Alphabet), len(expectedDecimal)); i++ {
-		if (config.Alphabet)[i] != expectedDecimal[i] {
-			t.Errorf("expected rune at the position %d to be %c, got %c", i, expectedDecimal[i], config.Alphabet[i])
+	for i := 0; i < max(len(conf.Alphabet), len(expectedDecimal)); i++ {
+		if (conf.Alphabet)[i] != expectedDecimal[i] {
+			t.Errorf("expected rune at the position %d to be %c, got %c", i, expectedDecimal[i], conf.Alphabet[i])
 		}
 	}
-	if config.Formatter != Simple {
-		t.Errorf("expected simple formatted got %d", config.Formatter)
+	if conf.Formatter != config.Simple {
+		t.Errorf("expected simple formatted got %d", conf.Formatter)
 	}
 
 }
 
 func TestForCustomError(t *testing.T) {
 
-	_, err := ForCustom(0, alphabetCharacters[Decimals], Simple)
+	_, err := ForCustom(0, alphabetCharacters[config.Decimals], config.Simple)
 
 	if err == nil {
 		t.Error("expected error")
@@ -58,7 +59,7 @@ func TestForCustomError(t *testing.T) {
 	//	t.Errorf("expected error %s, got %s", expectedIncorrectLength.Error(), err.Error())
 	//}
 
-	_, err = ForCustom(1, []rune{}, Simple)
+	_, err = ForCustom(1, []rune{}, config.Simple)
 	if err == nil {
 		t.Error("expected error")
 	}
@@ -66,7 +67,7 @@ func TestForCustomError(t *testing.T) {
 	if !errors.Is(err, expectedIncorrectAlphabetLengthError) {
 		t.Errorf("expected error %s, got %s", expectedIncorrectAlphabetLengthError.Error(), err.Error())
 	}
-	_, err = ForCustom(2, alphabetCharacters[Decimals], 3)
+	_, err = ForCustom(2, alphabetCharacters[config.Decimals], 3)
 	if err == nil {
 		t.Error("expected error")
 	}
@@ -79,7 +80,7 @@ func TestForCustomError(t *testing.T) {
 
 func TestForStandardSuccess(t *testing.T) {
 
-	gen, _ := ForStandard(8, len(alphabetCharacters[Decimals]), Simple)
+	gen, _ := ForStandard(8, len(alphabetCharacters[config.Decimals]), config.Simple)
 
 	// todo fix test
 	//if err != nil {
@@ -87,7 +88,7 @@ func TestForStandardSuccess(t *testing.T) {
 	//}
 
 	state := gen.state
-	config := state.Config
+	conf := state.Config
 
 	for i := 0; i < len(state.CurrentPositions); i++ {
 		if state.CurrentPositions[i] != 0 {
@@ -95,24 +96,24 @@ func TestForStandardSuccess(t *testing.T) {
 			t.Errorf("expected current position at %d to be 0, got %d", i, state.CurrentPositions[i])
 		}
 	}
-	if config.ResultLength != 8 {
-		t.Errorf("expected result length 8, got %d", config.ResultLength)
+	if conf.ResultLength != 8 {
+		t.Errorf("expected result length 8, got %d", conf.ResultLength)
 	}
 
-	for i := 0; i < max(len(config.Alphabet), len(expectedDecimal)); i++ {
-		if (config.Alphabet)[i] != expectedDecimal[i] {
-			t.Errorf("expected rune at the position %d to be %c, got %c", i, expectedDecimal[i], (config.Alphabet)[i])
+	for i := 0; i < max(len(conf.Alphabet), len(expectedDecimal)); i++ {
+		if (conf.Alphabet)[i] != expectedDecimal[i] {
+			t.Errorf("expected rune at the position %d to be %c, got %c", i, expectedDecimal[i], (conf.Alphabet)[i])
 		}
 	}
-	if config.Formatter != Simple {
-		t.Errorf("expected simple formatted got %d", config.Formatter)
+	if conf.Formatter != config.Simple {
+		t.Errorf("expected simple formatted got %d", conf.Formatter)
 	}
 
 }
 
 func TestForStandardError(t *testing.T) {
 
-	_, err := ForStandard(Custom, 8, Simple)
+	_, err := ForStandard(config.Custom, 8, config.Simple)
 
 	if err == nil {
 		t.Error("expected error")
@@ -125,7 +126,7 @@ func TestForStandardError(t *testing.T) {
 }
 
 func TestRecalculatePositions(t *testing.T) {
-	gen, err := ForStandard(Decimals, 8, Simple)
+	gen, err := ForStandard(config.Decimals, 8, config.Simple)
 
 	p, err := gen.recalculatePositions(5)
 	validatePositions(t, err, gen.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 5})
@@ -134,7 +135,7 @@ func TestRecalculatePositions(t *testing.T) {
 		t.Error("shouldn't be done")
 	}
 
-	gen, _ = ForStandard(Decimals, 8, Simple)
+	gen, _ = ForStandard(config.Decimals, 8, config.Simple)
 
 	p, err = gen.recalculatePositions(16)
 	validatePositions(t, err, gen.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 1, 6})
@@ -143,7 +144,7 @@ func TestRecalculatePositions(t *testing.T) {
 		t.Error("shouldn't be done")
 	}
 
-	gen, _ = ForStandard(Hex, 8, Simple)
+	gen, _ = ForStandard(config.Hex, 8, config.Simple)
 
 	p, err = gen.recalculatePositions(5000)
 	validatePositions(t, err, gen.state.CurrentPositions, []int{0, 0, 0, 0, 1, 3, 8, 8})
@@ -152,7 +153,7 @@ func TestRecalculatePositions(t *testing.T) {
 		t.Error("shouldn't be done")
 	}
 
-	gen, _ = ForStandard(Hex, 10, Simple)
+	gen, _ = ForStandard(config.Hex, 10, config.Simple)
 
 	p, err = gen.recalculatePositions(100)
 	validatePositions(t, err, gen.state.CurrentPositions, []int{0, 0, 0, 0, 0, 0, 0, 0, 6, 4})
@@ -160,7 +161,7 @@ func TestRecalculatePositions(t *testing.T) {
 	if gen.state.Done {
 		t.Error("shouldn't be done")
 	}
-	gen, _ = ForStandard(Base36, 4, Simple)
+	gen, _ = ForStandard(config.Base36, 4, config.Simple)
 
 	p, err = gen.recalculatePositions(1679617)
 	// todo this is bs
@@ -187,7 +188,7 @@ func validatePositions(t *testing.T, err error, actual []int, expected []int) {
 
 func TestSuppliesAllTheOptions(t *testing.T) {
 
-	subj, err := ForStandard(Decimals, 3, Simple)
+	subj, err := ForStandard(config.Decimals, 3, config.Simple)
 	if err != nil {
 		t.Fatalf("error is not expected %s", err.Error())
 	}
@@ -207,6 +208,23 @@ func TestSuppliesAllTheOptions(t *testing.T) {
 
 	if !errors.Is(err, PotentialResultsExhaustedError) {
 		t.Fatalf("incorrect error, expected PotentialResultsExhaustedError got %s", err.Error())
+	}
+
+}
+
+func TestSteps(t *testing.T) {
+
+	subj, err := ForStandard(config.Decimals, 4, config.Simple)
+	if err != nil {
+		t.Fatalf("error is not expected %s", err.Error())
+	}
+	batch, err := subj.Apply(10)
+	counter := 1000
+	for err == nil && counter > 0 {
+		counter--
+		println(batch[len(batch)-1])
+		batch, err = subj.Apply(10)
+
 	}
 
 }

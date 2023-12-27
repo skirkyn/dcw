@@ -2,6 +2,7 @@ package sfa
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -59,4 +60,14 @@ func TestToUuid4StringFromRunesError(t *testing.T) {
 	if !errors.Is(err, err) {
 		t.Errorf("expected error %s, got %s", IncorrectResultLengthError.Error(), err.Error())
 	}
+}
+
+func TestResultsFormatting(t *testing.T) {
+	subj, _ := ForStandard(0, 4, 0)
+	batch, _ := subj.Apply(100)
+
+	for i := range batch {
+		fmt.Println(batch[i])
+	}
+
 }

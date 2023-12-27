@@ -109,16 +109,15 @@ func (s *Server) startWorker(internalAddress string, wg *sync.WaitGroup) {
 func (s *Server) maybeProcessMessage(worker *zmq4.Socket, lock *sync.Mutex) {
 
 	lock.Lock()
-	request, err := worker.RecvMessage(zmq4.DONTWAIT)
-	lock.Unlock()
+	request, err := worker.RecvMessage(0)
 
 	if err != nil {
-		log.Print(err)
 		return
 	}
 
 	if len(request) != 2 {
 		log.Print("invalid request ", request)
+		lock.Unlock()
 		return
 	}
 
@@ -126,27 +125,21 @@ func (s *Server) maybeProcessMessage(worker *zmq4.Socket, lock *sync.Mutex) {
 
 	res, err := s.handler.Apply(content)
 	if err != nil {
+		s.respond(worker, client, res)
+		lock.Unlock()
 		log.Printf("error handling request %s", err.Error())
 	}
-	s.respond(worker, lock, client, res)
+	s.respond(worker, client, res)
+	lock.Unlock()
 }
 
 func (s *Server) parseMessage(msg []string) (string, []byte) {
-	index := 1
-
-	if msg[1] == "" {
-		index++
-
-	}
-	return string(util.SliceToByteSlice(msg[:2])), util.SliceToByteSlice(msg[2:])
+	return string(util.SliceToByteSlice(msg[:1])), util.SliceToByteSlice(msg[1:])
 }
 
-func (s *Server) respond(router *zmq4.Socket, lock *sync.Mutex, client string, resp []byte) {
+func (s *Server) respond(router *zmq4.Socket, client string, resp []byte) {
 	for i := s.serverConfig.MaxSendResponseRetries; i > 0; i-- {
-
-		lock.Lock()
 		_, err := router.SendMessage(client, resp)
-		lock.Unlock()
 
 		if err == nil {
 			return

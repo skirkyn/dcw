@@ -21,7 +21,6 @@ func NewSupplier(batchSize int, requestTransformer dto.RequestTransformer[int], 
 
 func (s *WorkSupplier) Supply() ([]byte, error) {
 	err := s.semaphore.Acquire(s.context, 1)
-	defer s.semaphore.Release(1)
 	if err != nil {
 		return nil, err
 	}
