@@ -220,6 +220,7 @@ func TestSteps(t *testing.T) {
 	}
 	batch, err := subj.Apply(10)
 	counter := 1000
+
 	for err == nil && counter > 0 {
 		counter--
 		println(batch[len(batch)-1])

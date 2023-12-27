@@ -89,6 +89,8 @@ func StringFromAlphabetGeneratorFromState(state State) (*Supplier, error) {
 
 func (g *Supplier) Apply(batchSize int) ([]string, error) {
 
+	// todo enable this(temporary disabled due to bugs)
+
 	//currentPositions, err := g.recalculatePositions(batchSize)
 
 	//if err != nil {
@@ -125,32 +127,32 @@ func (g *Supplier) generateBatch(res *[]string, current []rune, left int, depth 
 		}
 		*res = append(*res, strRes)
 
-		value := currentIndices[depth-1] + 1
-		currentIndices[depth-1] = value % (alphabetLength - 1)
-
-		return currentIndices[depth-1] < value && depth > 0, left - 1, nil
+		return true, left - 1, nil
 	}
-	carryover := false
+
+	counter := left
 	times := 0
-	for i := currentIndices[depth]; i < alphabetLength+currentIndices[depth] && left > 0; i++ {
-		current[depth] = g.state.Config.Alphabet[currentIndices[depth]]
+	carryover := false
 
-		newCarryover, newLeft, err := g.generateBatch(res, current, left, depth+1, currentIndices)
+	for times < alphabetLength && counter > 0 {
+		current[depth] = g.state.Config.Alphabet[(times+currentIndices[depth])%alphabetLength]
+		newCarryover, newLeft, err := g.generateBatch(res, current, counter, depth+1, currentIndices)
+		counter = newLeft
 		carryover = carryover || newCarryover
-		left = newLeft
-		times++
 		if err != nil {
-			return carryover, left, err
+			break
 		}
-
+		times++
 	}
 	if carryover {
-		value := currentIndices[depth] + 1
-		currentIndices[depth] = value % (alphabetLength - 1)
-		return times == alphabetLength, left, nil
+		oldVal := currentIndices[depth]
+		newVal := oldVal + times
+		adjustedVal := newVal % alphabetLength
+		currentIndices[depth] = adjustedVal
+		return newVal != adjustedVal, counter, nil
 	}
+	return false, counter, nil
 
-	return times == alphabetLength, left, nil
 }
 
 func (g *Supplier) updatePositions(positions []int, log int, sum int, index int) int {

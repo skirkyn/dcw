@@ -6,13 +6,13 @@
   "workersSemaphoreWeight": 2,
   "verifierConfig": {
     "method": "POST",
-    "url": "",
+    "url": "<url_goes_here>",
     "headers": {
       "Content-Type": "application/json"
     },
-    "body": "{\n  \"code\": %s\n}",
+    "body": "{\n  \"code\": \"%s\"\n}",
     "customConfig": {
-      "successStatus": "200"
+      "successStatus": 200
     }
   }
 }

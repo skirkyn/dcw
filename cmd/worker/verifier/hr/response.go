@@ -6,14 +6,14 @@ import (
 )
 
 type ResponseHandler struct {
-	successStatus string
+	successStatus int
 }
 
-func NewResponseHandler(successStatus string) common.Predicate[*http.Response] {
+func NewResponseHandler(successStatus int) common.Predicate[*http.Response] {
 	return &ResponseHandler{successStatus}
 }
 
 func (s *ResponseHandler) Test(res *http.Response) (bool, error) {
-	return res != nil && res.Status == "200", nil
+	return res != nil && res.StatusCode == s.successStatus, nil
 
 }

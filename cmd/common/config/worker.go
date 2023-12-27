@@ -25,7 +25,7 @@ type CbCustomConfig struct {
 }
 
 type TestHttpCustomConfig struct {
-	SuccessStatus string `json:"successStatus"`
+	SuccessStatus int `json:"successStatus"`
 }
 
 func ReadWorkerConfig[T HttpRequestVerifier[C], C CbCustomConfig | TestHttpCustomConfig]() (WorkerConfig[T, C], error) {

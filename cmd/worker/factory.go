@@ -111,7 +111,7 @@ func getTestHttpRunner(commonConfig config.CommonConfig) (runner.Runner, error) 
 	resultRequestTrans := dto.NewRequestTransformer[string]()
 	headersSupplier := hr.NewSimpleHeadersSupplier(workerConfig.VerifierConfig.Headers)
 	method := workerConfig.VerifierConfig.Method
-	verifyRequestSupplier := hr.NewRequestSupplier[string](method, headersSupplier, workerConfig.VerifierConfig.Method, hr.NewFormattingBodySupplier[string](workerConfig.VerifierConfig.Body))
+	verifyRequestSupplier := hr.NewRequestSupplier[string](method, headersSupplier, workerConfig.VerifierConfig.Url, hr.NewFormattingBodySupplier[string](workerConfig.VerifierConfig.Body))
 
 	successPredicate := hr.NewResponseHandler(workerConfig.VerifierConfig.CustomConfig.SuccessStatus)
 	verifier := hr.NewVerifier[string](http.DefaultClient, verifyRequestSupplier, successPredicate)
