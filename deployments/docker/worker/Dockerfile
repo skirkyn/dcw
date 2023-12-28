@@ -15,6 +15,5 @@ RUN apk add libzmq zeromq-dev zeromq gcc build-base pkgconfig
 RUN CGO_ENABLED=1  GOOS=linux go build -o worker ./cmd/worker
 
 RUN chmod +x ./worker
-EXPOSE 50000
 
 CMD ["./worker"]

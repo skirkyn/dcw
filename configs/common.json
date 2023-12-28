@@ -1,5 +1,5 @@
 {
-  "controllerHost": "localhost",
+  "controllerHost": "controller.default",
   "controllerPort": 50000,
   "jobName": "Test_HTTP"
 }

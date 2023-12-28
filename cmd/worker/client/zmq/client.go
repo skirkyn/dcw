@@ -55,7 +55,6 @@ func (c *Client) Call(req []byte) ([]byte, error) {
 	log.Println("received")
 	c.connLock.Unlock()
 	if len(msg) > 0 {
-		log.Println(msg)
 		return util.SliceToByteSlice(msg), err
 	}
 	return nil, errors.New("invalid response")
