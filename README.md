@@ -93,6 +93,9 @@ Make sure pods are running:
 After workes are up the job will start running. Once the result is found workers will stop and there will be "+++++++ !!!!!!!! found result !!!!!! +++++++++" with the result coming next in the controller logs.
 To look at the logs:
 `kubectl logs get <controller_pod_id>`
+To undeploy 
+`kubectl scale --replicas=0  deployment/worker`
+`kubectl scale --replicas=0  deployment/controller`
 
 ## Run containers locally
 `docker run  --network host <worker_image_hash>`
