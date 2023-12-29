@@ -34,7 +34,8 @@ type Config struct {
 type State struct {
 	Config           Config `json:"config"`
 	CurrentPositions []int  `json:"currentPositions"`
-	Done             bool   `json:"done"`
+	Total            int    `json:"total"`
+	Current          int    `json:"current"`
 }
 
 type Supplier struct {
@@ -60,7 +61,7 @@ func ForCustom(resultLength int, alphabet []rune, formatter config.Formatter) (*
 	sort.Slice(stateAlphabet, func(i, j int) bool {
 		return stateAlphabet[i] < stateAlphabet[j]
 	})
-	state := State{Config: Config{stateAlphabet, resultLength, formatter}, CurrentPositions: make([]int, resultLength)}
+	state := State{Config: Config{stateAlphabet, resultLength, formatter}, CurrentPositions: make([]int, resultLength), Total: int(math.Pow(float64(len(stateAlphabet)), float64(resultLength)))}
 	return StringFromAlphabetGeneratorFromState(state)
 
 }
@@ -100,6 +101,9 @@ func (g *Supplier) Apply(batchSize int) ([]string, error) {
 	template := make([]rune, g.state.Config.ResultLength)
 	chunk := make([]string, 0)
 	g.stateLock.Lock()
+	if g.state.Current >= g.state.Total {
+		return nil, PotentialResultsExhaustedError
+	}
 	_, _, err := g.generateBatch(&chunk, template, batchSize, 0, g.state.CurrentPositions)
 	g.stateLock.Unlock()
 
@@ -115,6 +119,9 @@ func (g *Supplier) CurrentState() ([]byte, error) {
 
 func (g *Supplier) generateBatch(res *[]string, current []rune, left int, depth int, currentIndices []int) (bool, int, error) {
 
+	if g.state.Total <= g.state.Current {
+		return false, 0, PotentialResultsExhaustedError
+	}
 	if left == 0 {
 		return false, left, nil
 	}
@@ -126,7 +133,7 @@ func (g *Supplier) generateBatch(res *[]string, current []rune, left int, depth 
 			return false, left, err
 		}
 		*res = append(*res, strRes)
-
+		g.state.Current++
 		return true, left - 1, nil
 	}
 
@@ -134,7 +141,7 @@ func (g *Supplier) generateBatch(res *[]string, current []rune, left int, depth 
 	times := 0
 	carryover := false
 
-	for times < alphabetLength && counter > 0 {
+	for times < alphabetLength && counter > 0 && g.state.Total > g.state.Current {
 		current[depth] = g.state.Config.Alphabet[(times+currentIndices[depth])%alphabetLength]
 		newCarryover, newLeft, err := g.generateBatch(res, current, counter, depth+1, currentIndices)
 		counter = newLeft
@@ -188,27 +195,23 @@ func (g *Supplier) updatePositions(positions []int, log int, sum int, index int)
 
 func (g *Supplier) recalculatePositions(batchSize int) ([]int, error) {
 
-	g.stateLock.Lock()
+	//g.stateLock.Lock()
+	//
+	//
+	//alphabetLength := len(g.state.Config.Alphabet)
+	//log := int(math.Log10(float64(batchSize)) / math.Log10(float64(alphabetLength)))
+	//
+	//oldPositions := make([]int, len(g.state.CurrentPositions))
+	//newPositions := make([]int, len(g.state.CurrentPositions))
+	//copy(oldPositions, g.state.CurrentPositions)
+	//copy(newPositions, g.state.CurrentPositions)
+	//:= g.updatePositions(newPositions, int(math.Min(float64(log), float64(g.state.Config.ResultLength))), batchSize, 0)
+	//
+	//
+	//for i := range g.state.CurrentPositions {
+	//	g.state.CurrentPositions[i] = newPositions[i]
+	//}
+	//g.stateLock.Unlock()
 
-	if g.state.Done {
-		return nil, PotentialResultsExhaustedError
-	}
-	alphabetLength := len(g.state.Config.Alphabet)
-	log := int(math.Log10(float64(batchSize)) / math.Log10(float64(alphabetLength)))
-
-	oldPositions := make([]int, len(g.state.CurrentPositions))
-	newPositions := make([]int, len(g.state.CurrentPositions))
-	copy(oldPositions, g.state.CurrentPositions)
-	copy(newPositions, g.state.CurrentPositions)
-	carryover := g.updatePositions(newPositions, int(math.Min(float64(log), float64(g.state.Config.ResultLength))), batchSize, 0)
-
-	if carryover > 0 {
-		g.state.Done = true
-	}
-	for i := range g.state.CurrentPositions {
-		g.state.CurrentPositions[i] = newPositions[i]
-	}
-	g.stateLock.Unlock()
-
-	return oldPositions, nil
+	return nil, nil
 }

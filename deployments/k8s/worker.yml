@@ -12,7 +12,12 @@ spec:
       labels:
         run: worker
     spec:
-      containers:
+        containers:
         - name: worker
-          image: skirkyn/worker
+          image: <your_worker_image>
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: 6
+
 

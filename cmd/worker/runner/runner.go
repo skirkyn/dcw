@@ -57,15 +57,17 @@ func (r *DefaultRunner[Result]) runWorker(wg *sync.WaitGroup) {
 		if err != nil {
 			log.Printf("error calling supply, will exit %s", err.Error())
 		}
-		go r.doWork(supply)
+		r.doWork(supply)
 	}
 }
 
 func (r *DefaultRunner[Result]) doWork(req []byte) {
 	log.Println("calling server")
 	resp, err := r.client.Call(req)
-	if err != nil {
-		//log.Printf("error calling the server %s", err.Error())
+	if err != nil && err.Error() == "potential results exhausted" {
+		log.Printf("error calling the server %s", err.Error())
+		r.Stop()
+
 		return
 	}
 	log.Println("applying result")

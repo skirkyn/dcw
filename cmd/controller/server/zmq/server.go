@@ -102,7 +102,7 @@ func (s *Server) startWorker(internalAddress string, wg *sync.WaitGroup) {
 		if s.stopped.Load() {
 			return
 		}
-		go s.maybeProcessMessage(worker, &lock)
+		s.maybeProcessMessage(worker, &lock)
 	}
 }
 
@@ -127,7 +127,7 @@ func (s *Server) maybeProcessMessage(worker *zmq4.Socket, lock *sync.Mutex) {
 	if err != nil {
 		s.respond(worker, client, res)
 		lock.Unlock()
-		log.Printf("error handling request %s", err.Error())
+		return
 	}
 	s.respond(worker, client, res)
 	lock.Unlock()

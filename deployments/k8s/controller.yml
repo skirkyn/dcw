@@ -14,7 +14,11 @@ spec:
     spec:
       containers:
         - name: controller
-          image: skirkyn/controller
+          image: <your_controller_image>
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: 6
           ports:
           - containerPort: 50000
 ---

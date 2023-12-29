@@ -7,12 +7,10 @@ variable "region" {
 variable "access_key" {
   description = "access key"
   type        = string
-  default     = "<access key>"
 }
 variable "secret_key" {
   description = "secret key"
   type        = string
-  default     = "<secret key>"
 }
 
 
@@ -42,7 +40,7 @@ variable "machine_image" {
 variable "controller_instance_type" {
   description = "Controller machine type"
   type        = string
-  default     = "t3.small"
+  default     = "c4.2xlarge"
 }
 variable "controller_min_instances" {
   description = "Controller min instances"
@@ -70,7 +68,7 @@ variable "controller_eks_node_group" {
 variable "worker_instance_type" {
   description = "Worker machine type"
   type        = string
-  default     = "t3.small"
+  default     = "c4.2xlarge"
 }
 
 variable "worker_min_instances" {
@@ -92,5 +90,5 @@ variable "worker_desired_instances" {
 variable "worker_eks_node_group" {
   description = "Worker node group name"
   type        = string
-  default     = "Worker"
+  default     = "worker_nodes"
 }

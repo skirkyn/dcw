@@ -33,7 +33,7 @@ func getSfaBruteForceDispatcher(controllerConfig config.ControllerConfig[config.
 	workHandler := sfa.NewGeneratorHandler(workSupplier, workResTrans)
 	resultRespTrans := dto.NewResponseTransformer[string]()
 
-	resultHandler := result.NewHandler[string](resultRespTrans)
+	resultHandler := result.NewHandler[string](resultRespTrans, workHandler)
 	handlers := map[dto.Type]common.Function[dto.Request[any], []byte]{dto.Work: workHandler, dto.Result: resultHandler}
 
 	dispatcher := server.NewDispatcher(handlers, dto.NewRequestTransformer[any]())
