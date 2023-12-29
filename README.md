@@ -1,8 +1,8 @@
 # Distributed Controller-Workers system
 
-The app is designed as a framework that can run distributed jobs.
-The controller supplies workes with small batches. and workers verify each item in the batch.
-If the verification is successful(cuztomizable) the worker will return the verified item to the controller.
+The app is designed as a framework that can run distributed jobs. Scale the work horizontally.
+The controller supplies workers with small batches. and workers verify each item in the batch.
+If the verification is successful(customizable) the worker will return the verified item to the controller.
 
 This initial implementation only can brute force using different types of alphabets and verify through the http request. I’m planning to add vocabulary and cryptography in future. But it’s designed to be a generic runner. 
 
@@ -26,7 +26,7 @@ Take a note of your access and secret key.
 Details [here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 
 **Configure AWS CLI**
-Run `aws confirgure`
+Run `aws configure`
 
 **Install Terraform CLI** 
 Details [here](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
@@ -53,7 +53,7 @@ Create file `deployments/infra/aws/vars.varfile` with following content:
 `secret_key="<your_aws_secret_key>"`
 
 where <..> has to be replaced with valid values(secret and access keys from your AWS account)
-This file is added to .gtignore and shouldn't be commited under any circumstances. It's only to set up yoir local authorization for the Terraform.
+This file is added to .gtignore and shouldn't be committed under any circumstances. It's only to set up your local authorization for the Terraform.
 
 Once you've set up and changed all the variables go to `deployments/infra/aws/` (if you are not there yet)
 Run following commands
@@ -84,13 +84,13 @@ From the project root
 
 ## Deploy the application to the k8s cluster
 Update the image in  deployments/k8s/controller.yml and deployments/k8s/worker.yml (replace <your_docker_account>/controller)
-Assuming you are in the oriject root
+Assuming you are in the project root
 Run from there:
 `kubectl apply -f deployments/k8s/controller.yml`
 `kubectl apply -f deployments/k8s/cworkerr.yml #`
 Make sure pods are running:
 `kubectl get pods`
-After workes are up the job will start running. Once the result is found workers will stop and there will be "+++++++ !!!!!!!! found result !!!!!! +++++++++" with the result comming next in the controller logs.
+After workes are up the job will start running. Once the result is found workers will stop and there will be "+++++++ !!!!!!!! found result !!!!!! +++++++++" with the result coming next in the controller logs.
 To look at the logs:
 `kubectl logs get <controller_pod_id>`
 
@@ -102,7 +102,7 @@ To look at the logs:
 Currently only brute force from alphabet is supported as a supplier. But a new one can be added. 
 The `TestJob` demonstrates how the components work together.
 There is a `test/lambda_handler.py` that is a target of the TestJob. Url is blank intentionally. I don't want you guys to torture my lambda function. But you can deploy [yours](https://docs.aws.amazon.com/lambda/latest/dg/getting-started.html) using this code.
-For this particullar http request I have following configuration:
+For this particular http request I have following configuration:
 
 `{`
  ` "connAttempts": 10,`\
@@ -123,7 +123,7 @@ For this particullar http request I have following configuration:
  ` }`\
 `}`\
   `connAttempts` - how many times a worker tries to connect to the controller (better to deploy the controller first)
-  `connAttemptsTtsSec` - sec to sleep between unsuccesful connect attempts
+  `connAttemptsTtsSec` - sec to sleep between unsuccessful connect attempts
   `batchSize` - how many items the worker will request from the controller
   `workersFactor` - parallel goroutines per 1 cpu
   `workersSemaphoreWeight` - kind of work cache. Worker will request more work while it's still busy doing the previous batch. So 2 means that it will only request 1 more batch per each cpu * workersFactor. If 3 then it's cache 2 more butches per each goroutine.
@@ -131,9 +131,11 @@ For this particullar http request I have following configuration:
   `method` - http method that will verify the item
   `url` - the url
   `headers` - headers that will be used
-  `body` - body with %s where the itme received from the controller go
+  `body` - body with %s where the item received from the controller go
   `customConfig` - defines custom identification of success in this case it'll compare the response status code to what's defined in config(200)
 
 # Only should be used for legal purposes. 
 
 Contributions are welcomed. There is a bunch of stuff to do. 
+
+
